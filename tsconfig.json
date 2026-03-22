@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/pagecraft" },
+    { "path": "./examples/basic/tsconfig.app.json" },
+    { "path": "./examples/basic/tsconfig.node.json" }
+  ]
+}
