@@ -116,6 +116,88 @@ function App() {
 export default App;
 ```
 
+## Adding to React Router 7 / Remix (SSR)
+
+SmartPage needs the browser DOM. In SSR frameworks, render it only on the client:
+
+```tsx
+// components/smart-editor.tsx
+import { useRef } from 'react';
+import { SmartPage, forBlock, ifBlock, readonlyBlock, type SmartPageRef } from 'smartpage';
+
+interface EditorProps {
+  value: string;
+  onChange: (html: string) => void;
+  disabled?: boolean;
+  variables?: { key: string; label?: string }[];
+}
+
+export function SmartEditor({ value, onChange, disabled, variables = [] }: EditorProps) {
+  const ref = useRef<SmartPageRef>(null);
+
+  return (
+    <div style={{ height: 'calc(100vh - 200px)' }}>
+      <SmartPage
+        ref={ref}
+        content={value}
+        canvas="a4"
+        toolbar="full"
+        variables={variables}
+        blocks={[forBlock, ifBlock, readonlyBlock]}
+        onChange={onChange}
+        readOnly={disabled}
+      />
+    </div>
+  );
+}
+```
+
+```tsx
+// In your route file — use clientLoader or a client-only wrapper
+import { ClientOnly } from 'remix-utils/client-only';
+import { SmartEditor } from '~/components/smart-editor';
+
+export default function EditTemplate() {
+  const [html, setHtml] = useState('');
+
+  return (
+    <ClientOnly fallback={<div>Loading editor...</div>}>
+      {() => <SmartEditor value={html} onChange={setHtml} />}
+    </ClientOnly>
+  );
+}
+```
+
+No `lazy()`, no `await import()`, no manual CSS imports needed.
+
+## Controlled Component Pattern
+
+When using SmartPage with forms (React Hook Form, Formik, etc.), treat it like a controlled input:
+
+```tsx
+import { SmartPage, type SmartPageRef } from 'smartpage';
+
+interface Props {
+  value: string;
+  onChange: (html: string) => void;
+}
+
+function TemplateField({ value, onChange }: Props) {
+  const ref = useRef<SmartPageRef>(null);
+
+  return (
+    <SmartPage
+      ref={ref}
+      content={value}
+      onChange={onChange}
+      canvas="a4"
+    />
+  );
+}
+```
+
+That's it. No refs for syncing, no effect hooks, no deduplication logic. SmartPage handles the content lifecycle internally.
+
 ## TypeScript Support
 
 SmartPage is fully typed. Import the types you need:
