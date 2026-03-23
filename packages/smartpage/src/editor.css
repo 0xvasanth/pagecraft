@@ -215,6 +215,29 @@
   margin: 0;
 }
 
+/* Borderless table */
+.ProseMirror table.table-borderless td,
+.ProseMirror table.table-borderless th {
+  border-color: transparent;
+}
+
+.ProseMirror table.table-borderless th {
+  background: transparent;
+}
+
+/* Show subtle dashed borders in edit mode so user can see cells */
+.ProseMirror table.table-borderless td:hover,
+.ProseMirror table.table-borderless th:hover {
+  border-color: #e5e7eb;
+  border-style: dashed;
+}
+
+/* Hide dashed hints in read-only */
+.smartpage--readonly .ProseMirror table.table-borderless td,
+.smartpage--readonly .ProseMirror table.table-borderless th {
+  border-color: transparent;
+}
+
 /* Table selection */
 .ProseMirror .selectedCell {
   background: #dbeafe;

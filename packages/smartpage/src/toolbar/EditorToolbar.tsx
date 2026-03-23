@@ -10,6 +10,7 @@ import {
   Subscript, Superscript, ChevronDown,
   Indent, Outdent, Type, Trash2, Plus,
   Columns2, Rows2, Merge, Split, Braces,
+  Grid3x3, SquareDashed, Paintbrush,
 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
@@ -59,6 +60,13 @@ const TEXT_COLORS = [
 const HIGHLIGHT_COLORS = [
   '#ffff00', '#00ff00', '#00ffff', '#ff00ff', '#ff0000', '#0000ff',
   '#fce5cd', '#d9ead3', '#cfe2f3', '#d9d2e9', '#ead1dc', '#fff2cc',
+]
+
+const CELL_BG_COLORS = [
+  '#ffffff', '#f3f4f6', '#e5e7eb', '#d1d5db',
+  '#dbeafe', '#bfdbfe', '#fef3c7', '#fde68a',
+  '#d1fae5', '#a7f3d0', '#fce4ec', '#f8bbd0',
+  '#ede9fe', '#ddd6fe', '#fff7ed', '#fed7aa',
 ]
 
 function ToolbarButton({
@@ -428,6 +436,48 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
                   <Trash2 className="size-3.5 mr-1.5" strokeWidth={1.5} />
                   Delete Table
                 </DropdownMenuItem>
+                {canRun(editor, 'deleteTable') && <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => {
+                    const isBorderless = editor.isActive('table', { borderStyle: 'none' })
+                    editor.chain().focus().updateAttributes('table', { borderStyle: isBorderless ? 'solid' : 'none' }).run()
+                  }}>
+                    {editor.isActive('table', { borderStyle: 'none' })
+                      ? <Grid3x3 className="size-3.5 mr-1.5" strokeWidth={1.5} />
+                      : <SquareDashed className="size-3.5 mr-1.5" strokeWidth={1.5} />
+                    }
+                    {editor.isActive('table', { borderStyle: 'none' }) ? 'Show Borders' : 'Hide Borders'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Paintbrush className="size-3.5 mr-1.5" strokeWidth={1.5} />
+                      Cell Color
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <div className="grid grid-cols-4 gap-1 p-1.5" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', padding: '6px' }}>
+                        {CELL_BG_COLORS.map(color => (
+                          <button
+                            key={color}
+                            onClick={() => editor.chain().focus().setCellAttribute('backgroundColor', color).run()}
+                            title={color}
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              backgroundColor: color,
+                              border: '1px solid #d1d5db',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => editor.chain().focus().setCellAttribute('backgroundColor', null).run()}>
+                        Reset Color
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </>}
               </DropdownMenuSubContent>
             </DropdownMenuSub>}
 
