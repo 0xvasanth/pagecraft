@@ -5,13 +5,13 @@ export default defineConfig({
   timeout: 30000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:5174',
+    baseURL: 'http://localhost:5180',
     headless: true,
     screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'bun run dev',
-    port: 5174,
+    port: 5180,
     reuseExistingServer: true,
     timeout: 15000,
   },

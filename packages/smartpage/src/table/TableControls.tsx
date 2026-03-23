@@ -238,7 +238,7 @@ export function TableControls({ editor }: TableControlsProps) {
             onClick={e => { e.preventDefault(); e.stopPropagation(); handleDeleteTable() }}
             title="Delete table"
           >
-            <Trash2 className="size-3.5" strokeWidth={1.5} />
+            <Trash2 className="size-3.5" strokeWidth={1.5} style={{ width: 14, height: 14 }} />
           </button>
         </div>
       )}
@@ -262,7 +262,7 @@ export function TableControls({ editor }: TableControlsProps) {
               onClick={e => { e.preventDefault(); e.stopPropagation(); handleRowAction(activeRow, 'add') }}
               title="Add row below"
             >
-              <Plus className="size-3" strokeWidth={1.5} />
+              <Plus className="size-3" strokeWidth={1.5} style={{ width: 12, height: 12 }} />
             </button>
             <button
               className="table-control__btn table-control__btn--delete"
@@ -270,7 +270,7 @@ export function TableControls({ editor }: TableControlsProps) {
               onClick={e => { e.preventDefault(); e.stopPropagation(); handleRowAction(activeRow, 'delete') }}
               title="Delete row"
             >
-              <X className="size-3" strokeWidth={1.5} />
+              <X className="size-3" strokeWidth={1.5} style={{ width: 12, height: 12 }} />
             </button>
           </div>
         )
@@ -295,7 +295,7 @@ export function TableControls({ editor }: TableControlsProps) {
               onClick={e => { e.preventDefault(); e.stopPropagation(); handleColAction(activeCol, 'add') }}
               title="Add column right"
             >
-              <Plus className="size-3" strokeWidth={1.5} />
+              <Plus className="size-3" strokeWidth={1.5} style={{ width: 12, height: 12 }} />
             </button>
             <button
               className="table-control__btn table-control__btn--delete"
@@ -303,7 +303,7 @@ export function TableControls({ editor }: TableControlsProps) {
               onClick={e => { e.preventDefault(); e.stopPropagation(); handleColAction(activeCol, 'delete') }}
               title="Delete column"
             >
-              <X className="size-3" strokeWidth={1.5} />
+              <X className="size-3" strokeWidth={1.5} style={{ width: 12, height: 12 }} />
             </button>
           </div>
         )

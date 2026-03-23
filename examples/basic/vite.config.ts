@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: process.env.GITHUB_PAGES ? '/doccraft/' : '/',
-  server: { port: 5174 },
+  server: { port: 5180 },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
