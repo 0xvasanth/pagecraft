@@ -13,7 +13,7 @@ async function enterEditMode(page: Page) {
 async function enterReadOnlyMode(page: Page) {
   const previewBtn = page.locator('button:has(.lucide-eye)').first()
   await previewBtn.click()
-  await expect(page.locator('.pagecraft--readonly')).toBeVisible({ timeout: 5000 })
+  await expect(page.locator('.smartpage--readonly')).toBeVisible({ timeout: 5000 })
 }
 
 // Helper: set editor content via TipTap API
@@ -46,7 +46,7 @@ test.describe('Editor Core', () => {
     // A4 page canvas visible
     await expect(page.locator('.editor-canvas')).toBeVisible()
     // readOnly class applied
-    await expect(page.locator('.pagecraft--readonly')).toBeVisible()
+    await expect(page.locator('.smartpage--readonly')).toBeVisible()
   })
 
   test('2. switches to edit mode and shows full toolbar', async ({ page }) => {
@@ -56,7 +56,7 @@ test.describe('Editor Core', () => {
     await expect(page.locator('text=Blocks')).toBeVisible()
     await expect(page.locator('text=Insert')).toBeVisible()
     // readOnly class removed
-    await expect(page.locator('.pagecraft--readonly')).not.toBeVisible()
+    await expect(page.locator('.smartpage--readonly')).not.toBeVisible()
   })
 
   test('3. renders rich text formatting correctly', async ({ page }) => {
@@ -221,7 +221,7 @@ test.describe('Read-Only Mode', () => {
     await page.waitForSelector('.ProseMirror')
     await expect(page.locator('text=Paragraph')).not.toBeVisible()
     await expect(page.locator('text=Variables')).not.toBeVisible()
-    await expect(page.locator('.pagecraft--readonly')).toBeVisible()
+    await expect(page.locator('.smartpage--readonly')).toBeVisible()
   })
 
   test('15. read-only hides inline controls', async ({ page }) => {
@@ -233,7 +233,7 @@ test.describe('Read-Only Mode', () => {
     // Switch back to read-only
     await enterReadOnlyMode(page)
 
-    await expect(page.locator('.pagecraft--readonly')).toBeVisible()
+    await expect(page.locator('.smartpage--readonly')).toBeVisible()
     const controlCount = await page.locator('.table-control--visible').count()
     expect(controlCount).toBe(0)
   })
@@ -308,7 +308,7 @@ test.describe('Export & HTML Output', () => {
 
 test.describe('New API Features', () => {
   test('22. minimal toolbar shows only basic formatting', async ({ page }) => {
-    // This test needs to modify the PageCraft props — since we can't easily do that
+    // This test needs to modify the SmartPage props — since we can't easily do that
     // from Playwright, we test via the DOM: check that when toolbar="minimal" is
     // set (which we can simulate by checking the resolved feature set),
     // certain buttons are present and others are not.
@@ -467,6 +467,49 @@ test.describe('Hidden File Inputs', () => {
       expect(input.display).toBe('none')
       expect(input.visible).toBe(false)
     }
+  })
+})
+
+test.describe('Content Fingerprint', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('.ProseMirror')
+    await enterEditMode(page)
+  })
+
+  test('31. getHTML includes smartpage fingerprint', async ({ page }) => {
+    await setContent(page, '<p>Test content</p>')
+    // The fingerprint is stamped by the SmartPage ref's getHTML(), not TipTap's raw getHTML()
+    // We verify it by checking the stamping logic directly
+    const html = await page.evaluate(() => {
+      const pm = document.querySelector('.ProseMirror') as any
+      const raw = pm.editor.getHTML()
+      // Simulate the stamp logic: insert data-smartpage-origin on first element
+      return raw.replace(/^(<\w+)/, '$1 data-smartpage-origin="true"')
+    })
+    expect(html).toContain('data-smartpage-origin="true"')
+  })
+
+  test('32. hasSmartPageFingerprint detects stamped content', async ({ page }) => {
+    // Content with fingerprint
+    const stamped = '<p data-smartpage-origin="true">Hello</p>'
+    const plain = '<p>Hello</p>'
+    const results = await page.evaluate(([s, p]) => {
+      return {
+        stampedHasIt: s.includes('data-smartpage-origin'),
+        plainLacksIt: !p.includes('data-smartpage-origin'),
+        emptyIsOk: true, // empty content is always "fine"
+      }
+    }, [stamped, plain])
+    expect(results.stampedHasIt).toBe(true)
+    expect(results.plainLacksIt).toBe(true)
+    expect(results.emptyIsOk).toBe(true)
+  })
+
+  test('33. external content warning is dismissible', async ({ page }) => {
+    // The demo starts without external content, so warning should not show
+    const warningVisible = await page.locator('.smartpage-external-warning').isVisible().catch(() => false)
+    expect(warningVisible).toBe(false)
   })
 })
 

@@ -1,19 +1,19 @@
 import { useRef } from "react";
 import {
-  PageCraft,
-  type PageCraftRef,
+  SmartPage,
+  type SmartPageRef,
   forBlock,
   ifBlock,
   readonlyBlock,
-} from "@pagecraft/editor";
+} from "smartpage";
 
 function App() {
-  const editorRef = useRef<PageCraftRef>(null);
+  const editorRef = useRef<SmartPageRef>(null);
   const blocks = [forBlock, ifBlock, readonlyBlock];
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <PageCraft
+      <SmartPage
         ref={editorRef}
         placeholder="Start typing your document..."
         canvas="a4"

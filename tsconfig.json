@@ -1,7 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/pagecraft" },
+    { "path": "./packages/smartpage" },
     { "path": "./examples/basic/tsconfig.app.json" },
     { "path": "./examples/basic/tsconfig.node.json" }
   ]

@@ -6,13 +6,14 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: process.env.GITHUB_PAGES ? '/doccraft/' : '/',
   server: { port: 5174 },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
       // In dev, resolve the library to its source for HMR and proper React context
-      "@pagecraft/editor/styles": path.resolve(__dirname, "../../packages/pagecraft/src/editor.css"),
-      "@pagecraft/editor": path.resolve(__dirname, "../../packages/pagecraft/src/index.ts"),
+      "smartpage/styles": path.resolve(__dirname, "../../packages/smartpage/src/editor.css"),
+      "smartpage": path.resolve(__dirname, "../../packages/smartpage/src/index.ts"),
     },
   },
 })

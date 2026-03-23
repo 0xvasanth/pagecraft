@@ -26,8 +26,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@pagecraft/editor": ["../../packages/pagecraft/src/index.ts"],
-      "@pagecraft/editor/styles": ["../../packages/pagecraft/src/editor.css"]
+      "smartpage": ["../../packages/smartpage/src/index.ts"],
+      "smartpage/styles": ["../../packages/smartpage/src/editor.css"]
     }
   },
   "include": ["src"]

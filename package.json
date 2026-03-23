@@ -1,5 +1,5 @@
 {
-  "name": "pagecraft",
+  "name": "smartpage",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "bun run --cwd examples/basic dev",
-    "build": "bun run --cwd packages/pagecraft build",
+    "build": "bun run --cwd packages/smartpage build",
     "build:example": "bun run --cwd examples/basic build",
     "build:all": "bun run build && bun run build:example",
     "test": "npx playwright test",

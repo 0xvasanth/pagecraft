@@ -1,6 +1,6 @@
-# PageCraft Editor — Use Cases
+# SmartPage Editor — Use Cases
 
-This document is the canonical list of all use cases supported by the PageCraft editor. Every feature, interaction, and edge case is listed here. Use this as:
+This document is the canonical list of all use cases supported by the SmartPage editor. Every feature, interaction, and edge case is listed here. Use this as:
 
 - **Manual QA checklist** — walk through each case before a release
 - **E2E test backlog** — every case should eventually have an automated test
@@ -15,7 +15,7 @@ The `[e2e]` tag marks cases covered by automated tests in `e2e/editor.spec.ts`. 
 ### 1.1 Read-Only Mode
 - [ ] `[e2e:1]` Editor starts in read-only mode when `readOnly={true}`
 - [ ] `[e2e:1]` Formatting toolbar is collapsed (Paragraph, Variables, Blocks not visible)
-- [ ] `[e2e:1]` `.pagecraft--readonly` class is applied to root element
+- [ ] `[e2e:1]` `.smartpage--readonly` class is applied to root element
 - [ ] `[e2e:14]` No formatting controls visible in read-only mode
 - [ ] `[e2e:30]` File inputs are hidden (`display: none`) and not visible
 - [ ] Content is not editable (cursor is `default`, no text input accepted)
@@ -27,7 +27,7 @@ The `[e2e]` tag marks cases covered by automated tests in `e2e/editor.spec.ts`. 
 ### 1.2 Edit Mode
 - [ ] `[e2e:2]` Clicking edit button switches to edit mode
 - [ ] `[e2e:2]` Full toolbar is visible (Paragraph, Variables, Blocks, Insert)
-- [ ] `[e2e:2]` `.pagecraft--readonly` class is removed
+- [ ] `[e2e:2]` `.smartpage--readonly` class is removed
 - [ ] Content is editable (cursor changes, text input accepted)
 - [ ] Clicking in the editor area places cursor and allows typing
 - [ ] All toolbar buttons are functional
@@ -485,7 +485,7 @@ The `[e2e]` tag marks cases covered by automated tests in `e2e/editor.spec.ts`. 
 
 ### 18.1 Icon Styling
 - [ ] All toolbar icons use `strokeWidth={1.5}` (not default 2)
-- [ ] All icons use `#5f6368` color (Google Docs gray), scoped to `.pagecraft`
+- [ ] All icons use `#5f6368` color (Google Docs gray), scoped to `.smartpage`
 - [ ] Toolbar icons are `size-3.5` (14px)
 - [ ] Bubble toolbar icons are `size-3` (12px)
 - [ ] Action bar icons are `size-3.5` (14px)
@@ -511,20 +511,42 @@ The `[e2e]` tag marks cases covered by automated tests in `e2e/editor.spec.ts`. 
 
 ---
 
-## 20. CSS Class Contract
+## 20. Content Fingerprint & External Content Warning
+
+### 20.1 Fingerprint
+- [ ] `getHTML()` output contains `data-smartpage-origin="true"` on the first element
+- [ ] `getPdfHTML()` output contains the fingerprint
+- [ ] `getPreviewHTML()` output contains the fingerprint
+- [ ] `hasSmartPageFingerprint(html)` returns `true` for SmartPage-generated HTML
+- [ ] `hasSmartPageFingerprint(html)` returns `false` for externally-created HTML
+- [ ] `hasSmartPageFingerprint('')` returns `true` (empty content is fine)
+
+### 20.2 External Content Warning
+- [ ] Warning banner appears when `content` prop has no fingerprint
+- [ ] Warning banner appears when `setContent()` is called with non-SmartPage HTML
+- [ ] Warning banner is dismissible (click "Dismiss")
+- [ ] Warning does not appear for SmartPage-generated HTML
+- [ ] Warning does not appear for empty content
+- [ ] `warnOnExternalContent={false}` disables the warning entirely
+- [ ] `warnOnExternalContent` defaults to `true` when not specified
+- [ ] Warning has `.smartpage-external-warning` CSS class
+
+---
+
+## 21. CSS Class Contract
 
 These CSS classes are part of the public API and must remain stable:
 
 | Class | Purpose |
 |-------|---------|
-| `.pagecraft` | Root wrapper element |
-| `.pagecraft--readonly` | Applied when editor is in read-only mode |
-| `.pagecraft-hf` | Header/footer zone |
-| `.pagecraft-hf--header` | Header zone specifically |
-| `.pagecraft-hf--footer` | Footer zone specifically |
-| `.pagecraft-hf-field` | Header/footer editable field |
-| `.pagecraft-hf-field--editing` | Header/footer field in edit mode |
-| `.pagecraft-hf-editor` | Header/footer mini-editor |
+| `.smartpage` | Root wrapper element |
+| `.smartpage--readonly` | Applied when editor is in read-only mode |
+| `.smartpage-hf` | Header/footer zone |
+| `.smartpage-hf--header` | Header zone specifically |
+| `.smartpage-hf--footer` | Footer zone specifically |
+| `.smartpage-hf-field` | Header/footer editable field |
+| `.smartpage-hf-field--editing` | Header/footer field in edit mode |
+| `.smartpage-hf-editor` | Header/footer mini-editor |
 | `.editor-canvas` | Outer canvas container |
 | `.editor-pages-container` | Page backgrounds container |
 | `.template-variable-chip` | Variable chip element |

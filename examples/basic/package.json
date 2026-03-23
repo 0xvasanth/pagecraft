@@ -1,5 +1,5 @@
 {
-  "name": "pagecraft-demo",
+  "name": "smartpage-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@pagecraft/editor": "workspace:*",
+    "smartpage": "workspace:*",
     "@base-ui/react": "^1.3.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@tailwindcss/vite": "^4.2.2",
