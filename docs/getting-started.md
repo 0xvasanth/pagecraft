@@ -50,6 +50,29 @@ If your bundler does not handle CSS side effects, you can import the stylesheet 
 import 'smartpage/styles';
 ```
 
+### Tailwind CSS Projects
+
+SmartPage uses Tailwind CSS internally. If your project uses Tailwind, add the SmartPage package to your content configuration so Tailwind generates the required utility classes:
+
+```js
+// tailwind.config.js
+module.exports = {
+  content: [
+    './src/**/*.{js,ts,jsx,tsx}',
+    './node_modules/smartpage/dist/**/*.{js,css}',  // <-- add this
+  ],
+};
+```
+
+Or with Tailwind v4 (`@tailwindcss/vite`), add a source directive in your CSS:
+
+```css
+@import "tailwindcss";
+@source "../node_modules/smartpage/dist";
+```
+
+If you are NOT using Tailwind, SmartPage still works — the toolbar and UI components use inline styles as fallbacks for critical layout properties.
+
 ## Adding to a Next.js App
 
 SmartPage uses browser-only APIs (DOM, TipTap/ProseMirror). Disable SSR with a dynamic import:
