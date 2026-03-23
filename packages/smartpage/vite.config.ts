@@ -26,16 +26,14 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      // Externalize ALL dependencies — the consumer's bundler resolves them.
-      // This prevents CJS modules (like use-sync-external-store) from being
-      // bundled into our ESM output with require() calls that break Vite SSR.
-      external: (id) => {
-        // Externalize everything that isn't a relative import or absolute path
-        if (id.startsWith(".") || id.startsWith("/") || id.startsWith("\0")) {
-          return false;
-        }
-        return true;
-      },
+      // Only externalize peer dependencies — bundle everything else.
+      // This way consumers only need react + react-dom installed.
+      external: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react-dom/client",
+      ],
       output: {
         globals: {
           react: "React",
