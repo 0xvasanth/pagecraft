@@ -58,6 +58,11 @@ export interface SmartPageProps {
    * Defaults to true.
    */
   warnOnExternalContent?: boolean
+  /**
+   * Allow users to add custom variables via the toolbar dropdown.
+   * When false (default), only predefined variables from the `variables` prop are shown.
+   */
+  allowCustomVariables?: boolean
   actions?: boolean | EditorActionsConfig
   toolbarActions?: React.ReactNode
   canvas?: 'a4' | 'email' | CanvasConfig
@@ -67,7 +72,7 @@ export interface SmartPageProps {
 }
 
 export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
-  ({ content, placeholder, onChange, className, variables: initialVariables = false, blocks = [], header: initialHeader = '', footer: initialFooter = '', readOnly: initialReadOnly = false, showToolbar: showToolbarProp, actions = true, toolbarActions, canvas, toolbar, extensions: extensionsProp, theme, warnOnExternalContent = true }, ref) => {
+  ({ content, placeholder, onChange, className, variables: initialVariables = false, blocks = [], header: initialHeader = '', footer: initialFooter = '', readOnly: initialReadOnly = false, showToolbar: showToolbarProp, allowCustomVariables = false, actions = true, toolbarActions, canvas, toolbar, extensions: extensionsProp, theme, warnOnExternalContent = true }, ref) => {
     const variablesEnabled = initialVariables !== false
     const [variables, setVariables] = useState<TemplateVariable[]>(variablesEnabled ? initialVariables : [])
     const [header, setHeader] = useState(initialHeader)
@@ -213,7 +218,7 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
           <EditorToolbar
             editor={toolbarEditor}
             variables={variablesEnabled ? variables : undefined}
-            onAddVariable={variablesEnabled ? handleAddVariable : undefined}
+            onAddVariable={variablesEnabled && allowCustomVariables ? handleAddVariable : undefined}
             blocks={blocks}
             actions={rightActions}
             readOnly={readOnly}
