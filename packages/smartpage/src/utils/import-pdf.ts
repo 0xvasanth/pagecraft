@@ -9,7 +9,8 @@ export interface ImportResult {
 async function loadPdfJs() {
   const pdfjs = await import('pdfjs-dist')
   const version = pdfjs.version || '5.5.207'
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`
+  // Use unpkg — cdnjs doesn't have pdfjs v5+
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`
   return pdfjs
 }
 
