@@ -6,7 +6,6 @@ export type { EditorActionsConfig } from './toolbar/EditorActions'
 export { exportToPdfHtml, exportToPreviewHtml, exportToHtml, hasSmartPageFingerprint, getSmartPageVersion } from './utils/export-html'
 export { SMARTPAGE_VERSION } from './version'
 export { importDocx } from './utils/import-docx'
-export { importPdf } from './utils/import-pdf'
 
 // Block plugin system
 export type { EditorBlockPlugin } from './blocks/types'

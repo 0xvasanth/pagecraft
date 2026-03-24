@@ -66,9 +66,6 @@ export function EditorActions({ config, editorRef, readOnly, onToggleReadOnly }:
       if (ext === 'docx' || ext === 'doc') {
         const result = await importDocx(file)
         html = result.html
-      } else if (ext === 'pdf') {
-        const result = await importPdf(file)
-        html = result.html
       } else {
         const text = await file.text()
         html = text.includes('<') && text.includes('>') ? text : `<p>${text}</p>`
@@ -274,7 +271,7 @@ export function EditorActions({ config, editorRef, readOnly, onToggleReadOnly }:
         <input
           ref={fileInputRef}
           type="file"
-          accept=".docx,.doc,.pdf,.html,.htm,.txt"
+          accept=".docx,.doc,.html,.htm,.txt"
           style={{ display: 'none' }}
           onChange={handleImport}
         />
