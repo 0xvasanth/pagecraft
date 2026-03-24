@@ -167,15 +167,12 @@ export function exportToPdfHtml(editorHtml: string, options: ExportOptions = {})
     footer = '',
   } = options
 
-  // Strip page break divs and replace with CSS page-break markers
-  const cleanedHtml = editorHtml.replace(
-    /<div[^>]*data-page-break[^>]*><\/div>/gi,
-    '<div style="page-break-after: always; break-after: page;"></div>'
-  )
+  // Split content at page breaks — CSS page-break-after doesn't work inside <td>,
+  // so we create separate table wrappers for each section with breaks between them.
+  const sections = editorHtml
+    .split(/<div[^>]*data-page-break[^>]*><\/div>/gi)
+    .filter(s => s.trim().length > 0)
 
-  // For print: use a table-based layout to repeat header/footer on every page.
-  // This is the most reliable cross-browser approach for repeating page headers.
-  // <thead> repeats at the top of every page, <tfoot> at the bottom.
   const safeHeader = sanitizeHtml(header)
   const safeFooter = sanitizeHtml(footer)
   const hasHeader = safeHeader && safeHeader !== '<p></p>'
@@ -258,13 +255,14 @@ export function exportToPdfHtml(editorHtml: string, options: ExportOptions = {})
   </style>
 </head>
 <body>
-  <table class="doc-table">
+  ${sections.map((section, i) => `
+  <table class="doc-table"${i < sections.length - 1 ? ' style="page-break-after: always;"' : ''}>
     ${hasHeader ? `<thead><tr><td class="doc-header"><div class="doc-header-content">${safeHeader}</div></td></tr></thead>` : ''}
     ${hasFooter ? `<tfoot><tr><td class="doc-footer"><div class="doc-footer-content">${safeFooter}</div></td></tr></tfoot>` : ''}
     <tbody><tr><td class="doc-body">
-      ${cleanedHtml}
+      ${section}
     </td></tr></tbody>
-  </table>
+  </table>`).join('\n')}
 </body>
 </html>`
 }

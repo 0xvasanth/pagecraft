@@ -105,7 +105,20 @@ function computeAndApply(dom: HTMLElement, style: HTMLStyleElement, options: Pag
   for (let i = 0; i < dom.children.length; i++) {
     const el = dom.children[i] as HTMLElement
     if (!el || el.nodeType !== 1) continue
-    if (el.classList.contains('page-break') || el.hasAttribute('data-page-break')) continue
+
+    // Page break: push next content to the start of the next page
+    if (el.classList.contains('page-break') || el.hasAttribute('data-page-break')) {
+      const breakTop = el.offsetTop + cumulativeSpacer
+      const pageIndex = Math.floor(breakTop / pageSpan)
+      const nextPageStart = (pageIndex + 1) * pageSpan
+      const remaining = nextPageStart - breakTop
+      if (remaining > 0) {
+        // Hide the page-break element and use its margin to create the gap
+        rules.push(`.ProseMirror > :nth-child(${i + 1}) { height: 0; overflow: hidden; margin-top: ${remaining}px !important; }`)
+        cumulativeSpacer += remaining
+      }
+      continue
+    }
 
     const top = el.offsetTop
     const height = el.offsetHeight

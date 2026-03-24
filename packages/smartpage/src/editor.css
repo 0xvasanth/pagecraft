@@ -385,43 +385,24 @@
   margin: 0.5em 0;
 }
 
-/* Page break — renders as a visual gap between pages.
-   Height = bottom page padding + gap + top page padding ≈ 232px */
+/* Page break — invisible in the editor; the page flow plugin handles
+   the visual gap by pushing content to the next page boundary.
+   The element itself is collapsed to zero height. */
 .page-break {
   page-break-after: always;
   break-after: page;
   position: relative;
-  height: 232px;
+  height: 0;
   margin: 0;
   border: none;
-  margin-left: -25.4mm;
-  margin-right: -25.4mm;
-  background: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: none;
   user-select: none;
   cursor: default;
-}
-
-.page-break::after {
-  content: 'Page Break';
-  font-size: 10px;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: #e8e8e8;
-  padding: 2px 12px;
-  border-radius: 3px;
+  overflow: hidden;
 }
 
 .ProseMirror .page-break.ProseMirror-selectednode {
   outline: none;
-}
-
-.ProseMirror .page-break.ProseMirror-selectednode::after {
-  background: #d1d5db;
-  color: #6b7280;
 }
 
 /* Template variables */
