@@ -216,8 +216,10 @@ export function exportToPdfHtml(editorHtml: string, options: ExportOptions = {})
       width: 100%;
       border-collapse: collapse;
     }
-    .doc-table td, .doc-table th {
-      border: none;
+    .doc-table > thead > tr > th,
+    .doc-table > tbody > tr > td,
+    .doc-table > tfoot > tr > td {
+      border: none !important;
       padding: 0;
       vertical-align: top;
     }
