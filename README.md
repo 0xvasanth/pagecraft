@@ -134,33 +134,6 @@ Feed the HTML to **Jinja**, **Handlebars**, **Mustache**, or any template engine
 | `footer`      | `string`                                             | —                   | Initial footer HTML                           |
 | `className`   | `string`                                             | —                   | CSS class for the wrapper                     |
 
-### Ref Methods
-
-```tsx
-const ref = useRef<SmartPageRef>(null);
-
-// Content
-ref.current.getHTML(); // Raw TipTap HTML (no styles)
-ref.current.getPdfHTML({ title: "Doc" }); // Full HTML + CSS for PDF generation
-ref.current.getPreviewHTML({ title: "Doc" }); // Visual A4 preview layout
-ref.current.getJSON(); // TipTap JSON structure
-ref.current.setContent("<p>Hello</p>"); // Set content programmatically
-ref.current.clear(); // Clear all content
-ref.current.focus(); // Focus the editor
-
-// Variables
-ref.current.getVariables(); // List of available variables
-
-// Header/Footer
-ref.current.getHeader(); // Get header HTML
-ref.current.getFooter(); // Get footer HTML
-ref.current.setHeader("<p>Company</p>"); // Set header content
-ref.current.setFooter("<p>Page {{page}}</p>"); // Set footer content
-
-// Mode
-ref.current.setReadOnly(true); // Toggle read-only mode
-ref.current.isReadOnly(); // Check current mode
-```
 
 ### Template Variables
 
@@ -304,42 +277,11 @@ pdfkit.from_string(rendered, 'invoice.pdf')
 
 No editor chrome, page shadows, or visual UI is included in the export — just clean, production-ready HTML.
 
-## Tech Stack
-
-| Technology                                   | Purpose                                           |
-| -------------------------------------------- | ------------------------------------------------- |
-| [TipTap](https://tiptap.dev)                 | Rich text editor framework (built on ProseMirror) |
-| [React](https://react.dev)                   | UI framework                                      |
-| [TypeScript](https://www.typescriptlang.org) | Type safety                                       |
-| [Vite](https://vite.dev)                     | Build tooling                                     |
-| [Playwright](https://playwright.dev)         | End-to-end testing (30 tests)                     |
-| [Lucide](https://lucide.dev)                 | Toolbar icons                                     |
-
-## Project Structure
-
-```
-smartpage/
-  packages/smartpage/       # smartpage library
-    src/
-      core/                 # Main component, editor hook, pagination
-      toolbar/              # Formatting toolbar, bubble toolbar, actions
-      canvas/               # A4 page layout, header/footer
-      table/                # Table inline controls
-      image/                # Image resize, crop, alignment
-      extensions/           # TipTap extensions (variables, page break, paste)
-      blocks/               # Block plugin system (for, if, readonly)
-      hooks/                # React hooks
-      utils/                # Export/import utilities
-      ui/                   # UI primitives (button, dropdown, tooltip, etc.)
-  examples/basic/           # Example application
-  e2e/                      # Playwright end-to-end tests
-  docs/                     # Use cases and documentation
-```
 
 ## Development
 
 ```bash
-git clone https://github.com/0xvasanth/doccraft
+git clone https://github.com/0xvasanth/smartpage
 cd smartpage
 bun install
 
