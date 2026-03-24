@@ -6,28 +6,26 @@ export interface ImportResult {
 }
 
 // Lazy-load pdfjs-dist so it's code-split into its own chunk
-// and only downloaded when the user actually imports a PDF.
 async function loadPdfJs() {
   const pdfjs = await import('pdfjs-dist')
-  // Derive worker version from the installed package to avoid mismatches
   const version = pdfjs.version || '5.5.207'
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`
   return pdfjs
 }
 
 /**
- * Import a PDF file and extract text + images as HTML.
+ * Import a PDF file and extract text + images as styled HTML.
  *
- * PDFs are a display format, not a document format — they don't store
- * semantic structure (headings, lists, tables). This extractor:
+ * Extracts:
+ * - Text with font size, bold/italic detection, and position
+ * - Text color from the graphics state operator list
+ * - Images embedded as base64
+ * - Page breaks between pages
  *
- * 1. Extracts text items with their font size and position
- * 2. Groups text into paragraphs based on vertical gaps
- * 3. Infers headings from larger font sizes
- * 4. Extracts embedded images via the operator list
- * 5. Inserts page breaks between pages
- *
- * The result is a best-effort reconstruction suitable for editing.
+ * Infers:
+ * - Headings from font size ratios
+ * - Text alignment from x-position relative to page width
+ * - Bold from font name
  */
 export async function importPdf(file: File): Promise<ImportResult> {
   const arrayBuffer = await file.arrayBuffer()
@@ -52,15 +50,24 @@ export async function importPdf(file: File): Promise<ImportResult> {
 
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
     const page = await pdf.getPage(pageNum)
+    const viewport = page.getViewport({ scale: 1 })
 
-    // Extract text content
+    // Extract text content with style info
     const textContent = await page.getTextContent()
-    const pageHtml = textItemsToHtml(textContent.items as TextItem[])
 
-    // Extract images from this page
+    // Extract text colors from operator list
+    const textColors = await extractTextColors(page, pdfjs)
+
+    // Convert to HTML with styles preserved
+    const pageHtml = textItemsToHtml(
+      textContent.items as TextItem[],
+      textColors,
+      viewport.width,
+    )
+
+    // Extract images
     const imageHtmlParts = await extractPageImages(page)
 
-    // Combine text and images for this page
     let fullPageHtml = pageHtml
     if (imageHtmlParts.length > 0) {
       fullPageHtml += imageHtmlParts.join('\n')
@@ -68,7 +75,6 @@ export async function importPdf(file: File): Promise<ImportResult> {
 
     pageHtmlParts.push(fullPageHtml)
 
-    // Add page break between pages (not after the last one)
     if (pageNum < totalPages) {
       pageHtmlParts.push('<div data-page-break class="page-break"></div>')
     }
@@ -90,52 +96,126 @@ interface TextItem {
   hasEOL: boolean
 }
 
-interface TextLine {
+interface StyledLine {
   text: string
   fontSize: number
   y: number
+  x: number
   isBold: boolean
+  isItalic: boolean
+  color: string | null  // hex color
+  pageWidth: number
 }
 
-function textItemsToHtml(items: TextItem[]): string {
+/**
+ * Extract text colors from the PDF operator list.
+ * Tracks graphics state color changes (rg/RG/k/K/cs/CS + sc/SC)
+ * before text-drawing operations (Tj/TJ/').
+ */
+async function extractTextColors(
+  page: import('pdfjs-dist').PDFPageProxy,
+  pdfjs: typeof import('pdfjs-dist'),
+): Promise<Map<number, string>> {
+  const colors = new Map<number, string>()
+  try {
+    const ops = await page.getOperatorList()
+    const { OPS } = pdfjs
+    let currentColor = '#000000'
+    let textItemIdx = 0
+
+    for (let i = 0; i < ops.fnArray.length; i++) {
+      const fn = ops.fnArray[i]
+      const args = ops.argsArray[i]
+
+      // RGB color: rg (fill) or RG (stroke)
+      if (fn === OPS.setFillRGBColor && args.length >= 3) {
+        const r = Math.round(args[0] * 255)
+        const g = Math.round(args[1] * 255)
+        const b = Math.round(args[2] * 255)
+        currentColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+      }
+
+      // CMYK color: k
+      if (fn === OPS.setFillCMYKColor && args.length >= 4) {
+        const [c, m, y, k] = args
+        const r = Math.round(255 * (1 - c) * (1 - k))
+        const g = Math.round(255 * (1 - m) * (1 - k))
+        const b = Math.round(255 * (1 - y) * (1 - k))
+        currentColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+      }
+
+      // Gray color: g
+      if (fn === OPS.setFillGray && args.length >= 1) {
+        const v = Math.round(args[0] * 255)
+        currentColor = `#${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}`
+      }
+
+      // Text drawing operations — associate current color
+      if (fn === OPS.showText || fn === OPS.showSpacedText || fn === OPS.nextLineShowText) {
+        if (currentColor !== '#000000') {
+          colors.set(textItemIdx, currentColor)
+        }
+        textItemIdx++
+      }
+    }
+  } catch {
+    // Operator list parsing failed — skip colors
+  }
+  return colors
+}
+
+function textItemsToHtml(
+  items: TextItem[],
+  textColors: Map<number, string>,
+  pageWidth: number,
+): string {
   if (items.length === 0) return ''
 
-  // Group text items into lines based on Y position
-  const lines: TextLine[] = []
-  let currentLine: TextLine | null = null
-  const LINE_THRESHOLD = 3 // pixels — items within this Y range are same line
+  // Build styled lines from text items
+  const lines: StyledLine[] = []
+  let currentLine: StyledLine | null = null
+  const LINE_THRESHOLD = 3
+  let textItemIdx = 0
 
   for (const item of items) {
     if (!item.str.trim() && !item.hasEOL) continue
 
     const fontSize = Math.abs(item.transform[0]) || Math.abs(item.transform[3]) || 12
     const y = item.transform[5]
-    const isBold = item.fontName?.toLowerCase().includes('bold') ?? false
+    const x = item.transform[4]
+    const fontName = item.fontName?.toLowerCase() || ''
+    const isBold = fontName.includes('bold') || fontName.includes('black')
+    const isItalic = fontName.includes('italic') || fontName.includes('oblique')
+    const color = textColors.get(textItemIdx) || null
+    textItemIdx++
 
     if (!currentLine || Math.abs(currentLine.y - y) > LINE_THRESHOLD) {
-      // New line
       if (currentLine) lines.push(currentLine)
       currentLine = {
         text: item.str,
         fontSize: Math.round(fontSize),
         y,
+        x: Math.round(x),
         isBold,
+        isItalic,
+        color,
+        pageWidth,
       }
     } else {
-      // Same line — append text
       currentLine.text += item.str
-      // Use the larger font size if mixed
       if (fontSize > currentLine.fontSize) {
         currentLine.fontSize = Math.round(fontSize)
       }
       if (isBold) currentLine.isBold = true
+      if (isItalic) currentLine.isItalic = true
+      // Keep the first non-null color
+      if (!currentLine.color && color) currentLine.color = color
     }
   }
   if (currentLine) lines.push(currentLine)
-
   if (lines.length === 0) return ''
 
-  // Determine the most common (body) font size
+  // Determine body font size (most common)
   const fontSizeCounts = new Map<number, number>()
   for (const line of lines) {
     fontSizeCounts.set(line.fontSize, (fontSizeCounts.get(line.fontSize) || 0) + 1)
@@ -143,13 +223,10 @@ function textItemsToHtml(items: TextItem[]): string {
   let bodyFontSize = 12
   let maxCount = 0
   for (const [size, count] of fontSizeCounts) {
-    if (count > maxCount) {
-      maxCount = count
-      bodyFontSize = size
-    }
+    if (count > maxCount) { maxCount = count; bodyFontSize = size }
   }
 
-  // Convert lines to HTML with heading inference
+  // Convert lines to HTML with styles
   const htmlParts: string[] = []
 
   for (const line of lines) {
@@ -159,28 +236,61 @@ function textItemsToHtml(items: TextItem[]): string {
     const escaped = escapeHtml(trimmed)
     const ratio = line.fontSize / bodyFontSize
 
-    if (ratio >= 1.8) {
-      htmlParts.push(`<h1>${escaped}</h1>`)
-    } else if (ratio >= 1.5) {
-      htmlParts.push(`<h2>${escaped}</h2>`)
-    } else if (ratio >= 1.2) {
-      htmlParts.push(`<h3>${escaped}</h3>`)
-    } else if (line.isBold && line.text.length < 100) {
-      // Short bold lines are likely sub-headings
-      htmlParts.push(`<h4>${escaped}</h4>`)
+    // Build inline styles
+    const styles: string[] = []
+    if (line.color) styles.push(`color: ${line.color}`)
+    if (line.fontSize !== bodyFontSize) styles.push(`font-size: ${line.fontSize}pt`)
+
+    // Infer alignment from x position
+    const alignment = inferAlignment(line.x, line.pageWidth)
+    if (alignment !== 'left') styles.push(`text-align: ${alignment}`)
+
+    const styleAttr = styles.length > 0 ? ` style="${styles.join('; ')}"` : ''
+
+    // Wrap text with formatting tags
+    let content = escaped
+    if (line.isBold && line.isItalic) {
+      content = `<strong><em>${escaped}</em></strong>`
     } else if (line.isBold) {
-      htmlParts.push(`<p><strong>${escaped}</strong></p>`)
+      content = `<strong>${escaped}</strong>`
+    } else if (line.isItalic) {
+      content = `<em>${escaped}</em>`
+    }
+
+    // Determine tag based on font size ratio
+    if (ratio >= 1.8) {
+      htmlParts.push(`<h1${styleAttr}>${content}</h1>`)
+    } else if (ratio >= 1.5) {
+      htmlParts.push(`<h2${styleAttr}>${content}</h2>`)
+    } else if (ratio >= 1.2) {
+      htmlParts.push(`<h3${styleAttr}>${content}</h3>`)
+    } else if (line.isBold && line.text.length < 100 && !line.color) {
+      htmlParts.push(`<h4${styleAttr}>${content}</h4>`)
     } else {
-      htmlParts.push(`<p>${escaped}</p>`)
+      htmlParts.push(`<p${styleAttr}>${content}</p>`)
     }
   }
 
   return htmlParts.join('\n')
 }
 
+/**
+ * Infer text alignment from x-position relative to page width.
+ * PDF coordinates: x=0 is left edge.
+ */
+function inferAlignment(x: number, pageWidth: number): string {
+  if (pageWidth <= 0) return 'left'
+  const leftMargin = pageWidth * 0.15   // ~15% margin
+  const centerZone = pageWidth * 0.35   // center starts at 35%
+  const rightZone = pageWidth * 0.65    // right-aligned if starts past 65%
+
+  if (x > rightZone) return 'right'
+  if (x > centerZone) return 'center'
+  return 'left'
+}
+
 async function extractPageImages(page: import('pdfjs-dist').PDFPageProxy): Promise<string[]> {
   const images: string[] = []
-
   try {
     const operatorList = await page.getOperatorList()
     const pdfjs = await loadPdfJs()
@@ -217,7 +327,6 @@ async function extractPageImages(page: import('pdfjs-dist').PDFPageProxy): Promi
             continue
           }
 
-          // Only include images above a minimum size (skip tiny decorative images)
           if (canvas.width > 50 && canvas.height > 50) {
             const dataUrl = canvas.toDataURL('image/png')
             images.push(`<img src="${dataUrl}" alt="Imported image" />`)
@@ -228,9 +337,8 @@ async function extractPageImages(page: import('pdfjs-dist').PDFPageProxy): Promi
       }
     }
   } catch {
-    // If operator list extraction fails, skip images for this page
+    // Operator list extraction failed
   }
-
   return images
 }
 
