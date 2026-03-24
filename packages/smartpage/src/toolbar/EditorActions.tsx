@@ -20,6 +20,16 @@ export interface EditorActionsConfig {
   print?: boolean
   export?: boolean
 
+  /**
+   * Custom file extractor. When provided, SmartPage calls this function
+   * for any file type it doesn't handle natively (e.g., PDF).
+   * The consumer sends the file to their backend (Adobe, Textract, Tika, etc.)
+   * and returns the extracted HTML.
+   *
+   * Return null to fall back to the default handler.
+   */
+  customExtractor?: (file: File) => Promise<string | null>
+
   /** Lifecycle hooks */
   onBeforeImport?: (file: File) => boolean | Promise<boolean>
   onAfterImport?: (html: string, file: File) => void
@@ -63,12 +73,23 @@ export function EditorActions({ config, editorRef, readOnly, onToggleReadOnly }:
       const ext = file.name.split('.').pop()?.toLowerCase()
       let html = ''
 
-      if (ext === 'docx' || ext === 'doc') {
-        const result = await importDocx(file)
-        html = result.html
-      } else {
-        const text = await file.text()
-        html = text.includes('<') && text.includes('>') ? text : `<p>${text}</p>`
+      // Try custom extractor first (for PDF, or any custom backend)
+      if (config.customExtractor) {
+        const extracted = await config.customExtractor(file)
+        if (extracted) {
+          html = extracted
+        }
+      }
+
+      // Fall back to built-in handlers if custom extractor didn't handle it
+      if (!html) {
+        if (ext === 'docx' || ext === 'doc') {
+          const result = await importDocx(file)
+          html = result.html
+        } else {
+          const text = await file.text()
+          html = text.includes('<') && text.includes('>') ? text : `<p>${text}</p>`
+        }
       }
 
       editorRef.current.setContent(html)
@@ -271,7 +292,7 @@ export function EditorActions({ config, editorRef, readOnly, onToggleReadOnly }:
         <input
           ref={fileInputRef}
           type="file"
-          accept=".docx,.doc,.html,.htm,.txt"
+          accept={config.customExtractor ? undefined : ".docx,.doc,.html,.htm,.txt"}
           style={{ display: 'none' }}
           onChange={handleImport}
         />
