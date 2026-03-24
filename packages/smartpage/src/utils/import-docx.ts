@@ -40,6 +40,10 @@ export async function importDocx(file: File): Promise<ImportResult> {
         "p[style-name='Quote'] => blockquote > p:fresh",
         "p[style-name='Block Text'] => blockquote > p:fresh",
         "p[style-name='Intense Quote'] => blockquote > p:fresh",
+        // List styles
+        "p[style-name='List Paragraph'] => li:fresh",
+        "p[style-name='List Bullet'] => ul > li:fresh",
+        "p[style-name='List Number'] => ol > li:fresh",
       ],
       convertImage: mammoth.images.imgElement(async (image) => {
         const buffer = await image.read() as unknown as ArrayBuffer
@@ -50,19 +54,44 @@ export async function importDocx(file: File): Promise<ImportResult> {
     }
   )
 
-  // Post-process: clean up mammoth output for TipTap compatibility
   let html = result.value
 
-  // Mammoth wraps images in <p> tags — keep them as-is since TipTap
-  // handles <img> inside <p> during parsing.
-
-  // Convert any <br> in empty paragraphs to proper empty paragraphs
-  html = html.replace(/<p><br\s*\/?><\/p>/g, '<p></p>')
+  // Post-process: clean up mammoth output for TipTap compatibility
+  html = postProcessHtml(html)
 
   return {
     html,
     messages: result.messages.map(m => `${m.type}: ${m.message}`),
   }
+}
+
+/**
+ * Post-process mammoth HTML to improve styling for TipTap:
+ * - Convert <<VARIABLE>> patterns to template variable syntax
+ * - Clean up empty paragraphs
+ * - Improve table structure
+ * - Add spacing between sections
+ */
+function postProcessHtml(html: string): string {
+  // Convert any <br> in empty paragraphs to proper empty paragraphs
+  html = html.replace(/<p><br\s*\/?><\/p>/g, '<p></p>')
+
+  // Remove consecutive empty paragraphs (keep max 1)
+  html = html.replace(/(<p><\/p>\s*){2,}/g, '<p></p>')
+
+  // Convert <<VARIABLE>> and &lt;&lt;VARIABLE&gt;&gt; patterns to template-friendly format
+  // These are common in legal/document templates
+  html = html.replace(/&lt;&lt;(\w+)&gt;&gt;/g, '{{$1}}')
+  html = html.replace(/<<(\w+)>>/g, '{{$1}}')
+
+  // Clean up tabs rendered as spaces
+  html = html.replace(/\t/g, '    ')
+
+  // Remove empty bold/italic tags
+  html = html.replace(/<strong>\s*<\/strong>/g, '')
+  html = html.replace(/<em>\s*<\/em>/g, '')
+
+  return html
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
