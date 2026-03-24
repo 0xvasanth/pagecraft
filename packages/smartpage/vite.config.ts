@@ -26,6 +26,13 @@ const externalDeps = [
   ...Object.keys(pkg.peerDependencies || {}),
 ];
 
+// CJS-only packages that must be bundled into our ESM output
+// to avoid `Dynamic require of "react" is not supported` errors
+// in consumer environments (Vite dev server, SSR).
+const bundledDeps = new Set([
+  'use-sync-external-store',
+]);
+
 export default defineConfig({
   plugins: [react(), injectCssImport()],
   build: {
@@ -37,6 +44,10 @@ export default defineConfig({
     },
     rollupOptions: {
       external: (id) => {
+        // Bundle CJS-only transitive deps to avoid require() in ESM output
+        if (bundledDeps.has(id) || [...bundledDeps].some(dep => id.startsWith(dep + '/'))) {
+          return false;
+        }
         // Externalize all declared dependencies and peer dependencies
         return externalDeps.some(dep => id === dep || id.startsWith(dep + '/'));
       },
