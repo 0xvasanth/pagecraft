@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+import pkg from "./package.json" with { type: "json" };
 
 /** Inject `import './smartpage.css'` at the top of the built JS so CSS auto-loads */
 function injectCssImport() {
@@ -16,6 +17,15 @@ function injectCssImport() {
   };
 }
 
+// Externalize all dependencies + peerDependencies.
+// npm installs dependencies for consumers automatically.
+// The consumer's bundler resolves and tree-shakes them.
+// This ensures zero CJS require() calls in our ESM output.
+const externalDeps = [
+  ...Object.keys(pkg.dependencies || {}),
+  ...Object.keys(pkg.peerDependencies || {}),
+];
+
 export default defineConfig({
   plugins: [react(), injectCssImport()],
   build: {
@@ -26,14 +36,10 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      // Only externalize peer dependencies — bundle everything else.
-      // This way consumers only need react + react-dom installed.
-      external: [
-        "react",
-        "react-dom",
-        "react/jsx-runtime",
-        "react-dom/client",
-      ],
+      external: (id) => {
+        // Externalize all declared dependencies and peer dependencies
+        return externalDeps.some(dep => id === dep || id.startsWith(dep + '/'));
+      },
       output: {
         globals: {
           react: "React",

@@ -19,7 +19,7 @@
 [![npm](https://img.shields.io/npm/v/smartpage.svg)](https://www.npmjs.com/package/smartpage)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18%20%7C%2019-61dafb.svg)](https://react.dev/)
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://0xvasanth.github.io/doccraft/)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://0xvasanth.github.io/smartpage/)
 
 ## The Problem
 
@@ -39,12 +39,7 @@ bun add smartpage
 
 ```tsx
 import { useRef } from "react";
-import {
-  SmartPage,
-  type SmartPageRef,
-  forBlock,
-  ifBlock,
-} from "smartpage";
+import { SmartPage, type SmartPageRef, forBlock, ifBlock } from "smartpage";
 
 function App() {
   const editorRef = useRef<SmartPageRef>(null);
@@ -133,7 +128,6 @@ Feed the HTML to **Jinja**, **Handlebars**, **Mustache**, or any template engine
 | `header`      | `string`                                             | —                   | Initial header HTML                           |
 | `footer`      | `string`                                             | —                   | Initial footer HTML                           |
 | `className`   | `string`                                             | —                   | CSS class for the wrapper                     |
-
 
 ### Template Variables
 
@@ -229,18 +223,18 @@ editorRef.current.setContent(result.html);
 
 ## Documentation
 
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](docs/getting-started.md) | Installation, setup, Next.js/Vite integration |
-| [Template Variables](docs/guides/template-variables.md) | Variable chips, labels, Jinja/Handlebars usage |
-| [Block Plugins](docs/guides/block-plugins.md) | For-loops, conditionals, custom blocks |
-| [Canvas & Layout](docs/guides/canvas-and-layout.md) | A4/email presets, pagination, header/footer |
-| [Toolbar Customization](docs/guides/toolbar-customization.md) | Presets, feature toggles, action hooks |
-| [Export & PDF](docs/guides/export-and-pdf.md) | HTML/PDF/Markdown export, Puppeteer/WeasyPrint |
-| [Theming](docs/guides/theming.md) | Fonts, colors, CSS overrides |
-| [Extending TipTap](docs/guides/extending-tiptap.md) | Custom extensions, configuration |
-| [Invoice Template Example](docs/examples/invoice-template.md) | Complete invoice editor with PDF export |
-| [Email Template Example](docs/examples/email-template.md) | Email editor with no-pagination mode |
+| Guide                                                         | Description                                    |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| [Getting Started](docs/getting-started.md)                    | Installation, setup, Next.js/Vite integration  |
+| [Template Variables](docs/guides/template-variables.md)       | Variable chips, labels, Jinja/Handlebars usage |
+| [Block Plugins](docs/guides/block-plugins.md)                 | For-loops, conditionals, custom blocks         |
+| [Canvas & Layout](docs/guides/canvas-and-layout.md)           | A4/email presets, pagination, header/footer    |
+| [Toolbar Customization](docs/guides/toolbar-customization.md) | Presets, feature toggles, action hooks         |
+| [Export & PDF](docs/guides/export-and-pdf.md)                 | HTML/PDF/Markdown export, Puppeteer/WeasyPrint |
+| [Theming](docs/guides/theming.md)                             | Fonts, colors, CSS overrides                   |
+| [Extending TipTap](docs/guides/extending-tiptap.md)           | Custom extensions, configuration               |
+| [Invoice Template Example](docs/examples/invoice-template.md) | Complete invoice editor with PDF export        |
+| [Email Template Example](docs/examples/email-template.md)     | Email editor with no-pagination mode           |
 
 ## PDF Generation
 
@@ -276,7 +270,6 @@ pdfkit.from_string(rendered, 'invoice.pdf')
 ```
 
 No editor chrome, page shadows, or visual UI is included in the export — just clean, production-ready HTML.
-
 
 ## Development
 
