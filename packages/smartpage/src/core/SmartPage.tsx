@@ -5,7 +5,7 @@ import { EditorToolbar } from '../toolbar/EditorToolbar'
 import { BubbleToolbar } from '../toolbar/BubbleToolbar'
 import { PageCanvas } from '../canvas/PageCanvas'
 import { EditorActions, type EditorActionsConfig } from '../toolbar/EditorActions'
-import { exportToPdfHtml, exportToPreviewHtml, hasSmartPageFingerprint } from '../utils/export-html'
+import { exportToPdfHtml, exportToPreviewHtml, hasSmartPageFingerprint, getSmartPageVersion } from '../utils/export-html'
 import { resolveCanvas } from '../canvas/canvas-config'
 import { resolveToolbar } from '../toolbar/toolbar-config'
 import { useImperativeHandle, forwardRef, useState, useCallback, useMemo, useRef, useEffect } from 'react'
@@ -80,7 +80,7 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
     const [footer, setFooter] = useState(initialFooter)
     const [activeHfEditor, setActiveHfEditor] = useState<Editor | null>(null)
     const [readOnly, setReadOnly] = useState(initialReadOnly)
-    const [externalContentWarning, setExternalContentWarning] = useState(false)
+    const [warningMessage, setWarningMessage] = useState<string | null>(null)
     const selfRef = useRef<SmartPageRef | null>(null)
 
     // Sync prop changes
@@ -100,6 +100,19 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
       if (blocks.length === 0) features.delete('blocks')
       return features
     }, [toolbar, resolvedCanvas.paginate, blocks.length])
+
+    /** Check content and return warning message if needed */
+    const checkContentWarning = (html: string): string | null => {
+      if (!html || !warnOnExternalContent) return null
+      if (!hasSmartPageFingerprint(html)) {
+        return 'This content was not created with SmartPage. Some formatting may not render as expected.'
+      }
+      const contentVersion = getSmartPageVersion(html)
+      if (contentVersion && contentVersion !== SMARTPAGE_VERSION) {
+        return `This content was created with SmartPage v${contentVersion} (current: v${SMARTPAGE_VERSION}). Some features may behave differently.`
+      }
+      return null
+    }
 
     /** Stamp fingerprint with version on raw HTML output */
     const stampFingerprint = (html: string): string => {
@@ -133,13 +146,10 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
       }
     }, [editor, readOnly])
 
-    // Detect external content on initial load — only if content prop has
-    // substantial text that lacks the SmartPage fingerprint
+    // Detect external content or version mismatch on initial load
     useEffect(() => {
       if (!warnOnExternalContent || !content) return
-      if (!hasSmartPageFingerprint(content)) {
-        setExternalContentWarning(true)
-      }
+      setWarningMessage(checkContentWarning(content))
     }, []) // Only check once on mount
 
     const handleAddVariable = useCallback((name: string) => {
@@ -164,11 +174,7 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
       }),
       getJSON: () => editor?.getJSON() as Record<string, unknown> ?? {},
       setContent: (html: string) => {
-        if (warnOnExternalContent && html && !hasSmartPageFingerprint(html)) {
-          setExternalContentWarning(true)
-        } else {
-          setExternalContentWarning(false)
-        }
+        setWarningMessage(checkContentWarning(html))
         editor?.commands.setContent(html)
       },
       getVariables: () => variables,
@@ -225,7 +231,7 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
             features={toolbarFeatures}
           />
         )}
-        {externalContentWarning && (
+        {warningMessage && (
           <div className="smartpage-external-warning" style={{
             display: 'flex',
             alignItems: 'center',
@@ -237,9 +243,9 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
             color: '#92400e',
             lineHeight: 1.4,
           }}>
-            <span>This content was not created with SmartPage. Some formatting may not render as expected.</span>
+            <span>{warningMessage}</span>
             <button
-              onClick={() => setExternalContentWarning(false)}
+              onClick={() => setWarningMessage(null)}
               style={{
                 background: 'none',
                 border: 'none',
