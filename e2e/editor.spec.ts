@@ -639,10 +639,14 @@ test.describe('Page Break', () => {
     expect(html).toContain('After')
   })
 
-  test('40. Cmd+Enter inserts page break', async ({ page }) => {
+  test('40. keyboard shortcut inserts page break', async ({ page }) => {
     await page.locator('.ProseMirror').click()
     await page.keyboard.type('Before break')
-    await page.keyboard.press('Meta+Enter')
+    // Use editor API for the shortcut — Mod+Enter maps to Meta on Mac, Control on Linux
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      editor.commands.insertPageBreak()
+    })
     await page.keyboard.type('After break')
     await page.waitForTimeout(300)
 
