@@ -439,8 +439,21 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
                 {canRun(editor, 'deleteTable') && <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => {
-                    const isBorderless = editor.isActive('table', { borderStyle: 'none' })
-                    editor.chain().focus().updateAttributes('table', { borderStyle: isBorderless ? 'solid' : 'none' }).run()
+                    // Find the table node in the document tree from cursor position
+                    const { state, view } = editor
+                    const { $from } = state.selection
+                    for (let depth = $from.depth; depth > 0; depth--) {
+                      const node = $from.node(depth)
+                      if (node.type.name === 'table') {
+                        const pos = $from.before(depth)
+                        const currentStyle = node.attrs.borderStyle || 'solid'
+                        const newStyle = currentStyle === 'none' ? 'solid' : 'none'
+                        view.dispatch(
+                          state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, borderStyle: newStyle })
+                        )
+                        break
+                      }
+                    }
                   }}>
                     {editor.isActive('table', { borderStyle: 'none' })
                       ? <Grid3x3 className="size-3.5 mr-1.5" strokeWidth={1.5} />
