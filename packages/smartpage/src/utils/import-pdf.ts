@@ -56,13 +56,13 @@ export async function importPdf(file: File): Promise<ImportResult> {
     // Extract text content with style info
     const textContent = await page.getTextContent()
 
-    // Extract text colors from operator list
-    const textColors = await extractTextColors(page, pdfjs)
+    // Extract text styles (color, font) from operator list
+    const textStyles = await extractTextStyles(page, pdfjs)
 
     // Convert to HTML with styles preserved
     const pageHtml = textItemsToHtml(
       textContent.items as TextItem[],
-      textColors,
+      textStyles,
       viewport.width,
     )
 
@@ -109,86 +109,127 @@ interface StyledLine {
 }
 
 /**
- * Extract text colors from the PDF operator list.
- * Tracks graphics state color changes (rg/RG/k/K/cs/CS + sc/SC)
- * before text-drawing operations (Tj/TJ/').
+ * Extract text styles (color, font) from the PDF operator list.
+ * pdfjs v5 returns colors as hex strings (e.g., "#ff0000"), not float arrays.
+ * Tracks setFont to detect bold/italic from font ID changes.
  */
-async function extractTextColors(
+interface TextStyle {
+  color: string
+  fontId: string
+}
+
+async function extractTextStyles(
   page: import('pdfjs-dist').PDFPageProxy,
   pdfjs: typeof import('pdfjs-dist'),
-): Promise<Map<number, string>> {
-  const colors = new Map<number, string>()
+): Promise<TextStyle[]> {
+  const styles: TextStyle[] = []
   try {
     const ops = await page.getOperatorList()
     const { OPS } = pdfjs
     let currentColor = '#000000'
-    let textItemIdx = 0
+    let currentFont = ''
 
     for (let i = 0; i < ops.fnArray.length; i++) {
       const fn = ops.fnArray[i]
       const args = ops.argsArray[i]
 
-      // RGB color: rg (fill) or RG (stroke)
-      if (fn === OPS.setFillRGBColor && args.length >= 3) {
-        const r = Math.round(args[0] * 255)
-        const g = Math.round(args[1] * 255)
-        const b = Math.round(args[2] * 255)
-        currentColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
-      }
-
-      // CMYK color: k
-      if (fn === OPS.setFillCMYKColor && args.length >= 4) {
-        const [c, m, y, k] = args
-        const r = Math.round(255 * (1 - c) * (1 - k))
-        const g = Math.round(255 * (1 - m) * (1 - k))
-        const b = Math.round(255 * (1 - y) * (1 - k))
-        currentColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
-      }
-
-      // Gray color: g
-      if (fn === OPS.setFillGray && args.length >= 1) {
-        const v = Math.round(args[0] * 255)
-        currentColor = `#${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}`
-      }
-
-      // Text drawing operations — associate current color
-      if (fn === OPS.showText || fn === OPS.showSpacedText || fn === OPS.nextLineShowText) {
-        if (currentColor !== '#000000') {
-          colors.set(textItemIdx, currentColor)
+      // Color operations — pdfjs v5 may return hex strings or float arrays
+      if (fn === OPS.setFillRGBColor) {
+        if (typeof args[0] === 'string') {
+          // pdfjs v5: hex string like "#ff0000"
+          currentColor = args[0]
+        } else if (args.length >= 3) {
+          // pdfjs v4: float array [r, g, b]
+          const r = Math.round(args[0] * 255)
+          const g = Math.round(args[1] * 255)
+          const b = Math.round(args[2] * 255)
+          currentColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
         }
-        textItemIdx++
+      }
+
+      if (fn === OPS.setFillCMYKColor) {
+        if (typeof args[0] === 'string') {
+          currentColor = args[0]
+        } else if (args.length >= 4) {
+          const [c, m, y, k] = args
+          const r = Math.round(255 * (1 - c) * (1 - k))
+          const g = Math.round(255 * (1 - m) * (1 - k))
+          const b = Math.round(255 * (1 - y) * (1 - k))
+          currentColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+        }
+      }
+
+      if (fn === OPS.setFillGray) {
+        if (typeof args[0] === 'string') {
+          currentColor = args[0]
+        } else if (args.length >= 1) {
+          const v = Math.round(args[0] * 255)
+          currentColor = `#${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}`
+        }
+      }
+
+      // Font changes
+      if (fn === OPS.setFont) {
+        currentFont = args[0] || ''
+      }
+
+      // Text drawing — record style for each text operation
+      if (fn === OPS.showText || fn === OPS.showSpacedText || fn === OPS.nextLineShowText) {
+        styles.push({ color: currentColor, fontId: currentFont })
       }
     }
   } catch {
-    // Operator list parsing failed — skip colors
+    // Operator list parsing failed
   }
-  return colors
+  return styles
 }
 
 function textItemsToHtml(
   items: TextItem[],
-  textColors: Map<number, string>,
+  textStyles: TextStyle[],
   pageWidth: number,
 ): string {
   if (items.length === 0) return ''
+
+  // Detect which font IDs are "bold" by checking if multiple font IDs exist.
+  // In most PDFs, the bold variant has a different font ID than regular.
+  // We identify the "bold" font by finding the less-common font that appears
+  // in short lines or alongside larger text.
+  const fontIdCounts = new Map<string, number>()
+  for (const style of textStyles) {
+    if (style.fontId) fontIdCounts.set(style.fontId, (fontIdCounts.get(style.fontId) || 0) + 1)
+  }
+  // The most-used font is likely "regular"; others may be bold/italic
+  let regularFont = ''
+  let maxFontCount = 0
+  for (const [id, count] of fontIdCounts) {
+    if (count > maxFontCount) { maxFontCount = count; regularFont = id }
+  }
 
   // Build styled lines from text items
   const lines: StyledLine[] = []
   let currentLine: StyledLine | null = null
   const LINE_THRESHOLD = 3
-  let textItemIdx = 0
+  let styleIdx = 0
 
   for (const item of items) {
-    if (!item.str.trim() && !item.hasEOL) continue
+    if (!item.str.trim() && !item.hasEOL) { styleIdx++; continue }
 
     const fontSize = Math.abs(item.transform[0]) || Math.abs(item.transform[3]) || 12
     const y = item.transform[5]
     const x = item.transform[4]
     const fontName = item.fontName?.toLowerCase() || ''
-    const isBold = fontName.includes('bold') || fontName.includes('black')
+
+    // Detect bold: check font name OR check if font ID differs from the regular font
+    const style = textStyles[styleIdx] || { color: '#000000', fontId: '' }
+    const isBoldByName = fontName.includes('bold') || fontName.includes('black')
+    const isBoldByFont = style.fontId !== '' && regularFont !== '' && style.fontId !== regularFont && fontIdCounts.size > 1
+    const isBold = isBoldByName || isBoldByFont
     const isItalic = fontName.includes('italic') || fontName.includes('oblique')
-    const color = textColors.get(textItemIdx) || null
-    textItemIdx++
+
+    // Color — skip black/white
+    const color = (style.color && style.color !== '#000000' && style.color !== '#ffffff') ? style.color : null
+    styleIdx++
 
     if (!currentLine || Math.abs(currentLine.y - y) > LINE_THRESHOLD) {
       if (currentLine) lines.push(currentLine)
@@ -209,7 +250,6 @@ function textItemsToHtml(
       }
       if (isBold) currentLine.isBold = true
       if (isItalic) currentLine.isItalic = true
-      // Keep the first non-null color
       if (!currentLine.color && color) currentLine.color = color
     }
   }
