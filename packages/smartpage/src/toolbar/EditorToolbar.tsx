@@ -439,21 +439,34 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
                 {canRun(editor, 'deleteTable') && <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => {
-                    // Find the table node in the document tree from cursor position
+                    // Find table node by walking the doc — more reliable than selection
                     const { state, view } = editor
+                    let found = false
+                    // First try: walk up from current selection
                     const { $from } = state.selection
-                    for (let depth = $from.depth; depth > 0; depth--) {
-                      const node = $from.node(depth)
-                      if (node.type.name === 'table') {
-                        const pos = $from.before(depth)
-                        const currentStyle = node.attrs.borderStyle || 'solid'
-                        const newStyle = currentStyle === 'none' ? 'solid' : 'none'
-                        view.dispatch(
-                          state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, borderStyle: newStyle })
-                        )
+                    for (let d = $from.depth; d > 0; d--) {
+                      if ($from.node(d).type.name === 'table') {
+                        const pos = $from.before(d)
+                        const current = $from.node(d).attrs.borderStyle || 'solid'
+                        view.dispatch(state.tr.setNodeAttribute(pos, 'borderStyle', current === 'none' ? 'solid' : 'none'))
+                        found = true
                         break
                       }
                     }
+                    // Fallback: find first table in the doc
+                    if (!found) {
+                      state.doc.descendants((node, pos) => {
+                        if (found) return false
+                        if (node.type.name === 'table') {
+                          const current = node.attrs.borderStyle || 'solid'
+                          view.dispatch(state.tr.setNodeAttribute(pos, 'borderStyle', current === 'none' ? 'solid' : 'none'))
+                          found = true
+                          return false
+                        }
+                        return true
+                      })
+                    }
+                    editor.commands.focus()
                   }}>
                     {editor.isActive('table', { borderStyle: 'none' })
                       ? <Grid3x3 className="size-3.5 mr-1.5" strokeWidth={1.5} />
