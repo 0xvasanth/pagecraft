@@ -14,6 +14,13 @@ export function hasSmartPageFingerprint(html: string): boolean {
   return html.includes('data-smartpage-origin')
 }
 
+/** Extract the SmartPage version from fingerprinted HTML. Returns null if not found. */
+export function getSmartPageVersion(html: string): string | null {
+  if (!html) return null
+  const match = html.match(/data-smartpage-version="([^"]*)"/)
+  return match ? match[1] : null
+}
+
 /**
  * Content styles shared between PDF export and preview.
  * These are the actual formatting styles that make the content

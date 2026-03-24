@@ -11,6 +11,7 @@ import { resolveToolbar } from '../toolbar/toolbar-config'
 import { useImperativeHandle, forwardRef, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { EditorBlockPlugin } from '../blocks/types'
 import type { CanvasConfig, ToolbarConfig, TemplateVariable, ExtensionsConfig, ThemeConfig } from '../types'
+import { SMARTPAGE_VERSION } from '../version'
 import '../editor.css'
 
 export interface SmartPageRef {
@@ -100,13 +101,12 @@ export const SmartPage = forwardRef<SmartPageRef, SmartPageProps>(
       return features
     }, [toolbar, resolvedCanvas.paginate, blocks.length])
 
-    /** Stamp fingerprint on raw HTML output so we can identify SmartPage content later */
+    /** Stamp fingerprint with version on raw HTML output */
     const stampFingerprint = (html: string): string => {
       if (!html || html.trim().length === 0) return html
       // If fingerprint already present, don't duplicate
       if (html.includes('data-smartpage-origin')) return html
-      // Insert data-smartpage-origin on the first element
-      return html.replace(/^(<\w+)/, '$1 data-smartpage-origin="true"')
+      return html.replace(/^(<\w+)/, `$1 data-smartpage-origin="true" data-smartpage-version="${SMARTPAGE_VERSION}"`)
     }
 
     useBlockStyles(blocks)
