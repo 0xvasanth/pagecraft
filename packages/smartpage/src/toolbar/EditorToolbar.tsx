@@ -114,6 +114,16 @@ function canRun(editor: Editor, command: string): boolean {
   return typeof can[command] === 'function' ? !!(can[command] as () => boolean)() : false
 }
 
+/** Get current font size in pt from the editor's text style mark, or default 11 */
+function getCurrentFontSize(editor: Editor): number {
+  const attrs = editor.getAttributes('textStyle')
+  if (attrs?.fontSize) {
+    const parsed = parseInt(attrs.fontSize, 10)
+    if (!isNaN(parsed)) return parsed
+  }
+  return 11 // default editor font size
+}
+
 export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = [], actions, readOnly = false, features }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [customVarName, setCustomVarName] = useState('')
@@ -230,6 +240,42 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>}
+
+        {/* Font Size — paragraph only */}
+        {!editor.isActive('heading') && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: '4px', marginRight: '4px' }}>
+            <button
+              onClick={() => {
+                const current = getCurrentFontSize(editor)
+                if (current > 6) editor.chain().focus().setFontSize(`${current - 1}pt`).run()
+              }}
+              style={{ width: 18, height: 18, border: '1px solid #d1d5db', borderRadius: 3, background: '#fff', cursor: 'pointer', fontSize: 11, lineHeight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5f6368' }}
+              title="Decrease font size"
+            >−</button>
+            <input
+              type="number"
+              min={6}
+              max={72}
+              value={getCurrentFontSize(editor)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10)
+                if (val >= 6 && val <= 72) {
+                  editor.chain().focus().setFontSize(`${val}pt`).run()
+                }
+              }}
+              style={{ width: 36, height: 18, border: '1px solid #d1d5db', borderRadius: 3, textAlign: 'center', fontSize: 11, padding: 0, outline: 'none', MozAppearance: 'textfield', WebkitAppearance: 'none' } as React.CSSProperties}
+              title="Font size (pt)"
+            />
+            <button
+              onClick={() => {
+                const current = getCurrentFontSize(editor)
+                if (current < 72) editor.chain().focus().setFontSize(`${current + 1}pt`).run()
+              }}
+              style={{ width: 18, height: 18, border: '1px solid #d1d5db', borderRadius: 3, background: '#fff', cursor: 'pointer', fontSize: 11, lineHeight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5f6368' }}
+              title="Increase font size"
+            >+</button>
+          </div>
+        )}
 
         {/* Text Style */}
         {sepBefore(2) && <Separator orientation="vertical" className="mx-1 h-6" />}

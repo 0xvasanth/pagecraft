@@ -18,6 +18,7 @@ import { PageBreak } from '../extensions/page-break'
 import { ResizableImage } from '../extensions/resizable-image'
 import { PasteHandler } from '../extensions/paste-handler'
 import { TemplateVariable } from '../extensions/template-variable'
+import { FontSize } from '../extensions/font-size'
 import { PageFlowExtension } from './page-flow-plugin'
 import type { EditorBlockPlugin, BlockContext } from '../blocks/types'
 import type { ResolvedCanvas } from '../canvas/canvas-config'
@@ -52,6 +53,7 @@ function buildExtensions(
   defaults.set('underline', Underline)
   defaults.set('textStyle', TextStyle)
   defaults.set('color', Color)
+  defaults.set('fontSize', FontSize)
   defaults.set('highlight', Highlight.configure({ multicolor: true }))
   defaults.set('placeholder', Placeholder.configure({ placeholder }))
   defaults.set('typography', Typography)
