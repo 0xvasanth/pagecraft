@@ -14,12 +14,6 @@ export const TableWithStyles = Table.extend({
         default: 'solid',
         parseHTML: (element: HTMLElement) => element.getAttribute('data-border-style') || 'solid',
         renderHTML: (attributes: Record<string, string>) => {
-          if (attributes.borderStyle === 'none') {
-            return {
-              'data-border-style': 'none',
-              class: 'table-borderless',
-            }
-          }
           return { 'data-border-style': attributes.borderStyle || 'solid' }
         },
       },

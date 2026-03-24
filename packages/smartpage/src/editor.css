@@ -215,26 +215,26 @@
   margin: 0;
 }
 
-/* Borderless table */
-.ProseMirror table.table-borderless td,
-.ProseMirror table.table-borderless th {
+/* Borderless table — uses data attribute so toggling back works cleanly */
+.ProseMirror table[data-border-style="none"] td,
+.ProseMirror table[data-border-style="none"] th {
   border-color: transparent;
 }
 
-.ProseMirror table.table-borderless th {
+.ProseMirror table[data-border-style="none"] th {
   background: transparent;
 }
 
 /* Show subtle dashed borders in edit mode so user can see cells */
-.ProseMirror table.table-borderless td:hover,
-.ProseMirror table.table-borderless th:hover {
+.ProseMirror table[data-border-style="none"] td:hover,
+.ProseMirror table[data-border-style="none"] th:hover {
   border-color: #e5e7eb;
   border-style: dashed;
 }
 
-/* Hide dashed hints in read-only */
-.smartpage--readonly .ProseMirror table.table-borderless td,
-.smartpage--readonly .ProseMirror table.table-borderless th {
+/* Hide dashed hints in read-only and export */
+.smartpage--readonly .ProseMirror table[data-border-style="none"] td,
+.smartpage--readonly .ProseMirror table[data-border-style="none"] th {
   border-color: transparent;
 }
 
