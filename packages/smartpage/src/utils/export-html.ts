@@ -122,16 +122,17 @@ const CONTENT_STYLES = `
     .text-right, [style*="text-align: right"] { text-align: right; }
     .text-justify, [style*="text-align: justify"] { text-align: justify; }
 
-    /* Template variables */
+    /* Template variables — render as plain inline text in export.
+       Chip styling (background, border, monospace) is editor-only. */
     .template-variable, span[data-variable] {
       display: inline;
-      background: #ede9fe;
-      color: #6d28d9;
-      border: 1px solid #c4b5fd;
-      border-radius: 4px;
-      padding: 0 4px;
-      font-size: 0.85em;
-      font-family: 'Courier New', monospace;
+      background: none;
+      color: inherit;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      font-size: inherit;
+      font-family: inherit;
       white-space: nowrap;
     }
 `
