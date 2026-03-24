@@ -1,10 +1,15 @@
 import { Table } from '@tiptap/extension-table'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+
+const tableBorderPluginKey = new PluginKey('tableBorderSync')
 
 /**
  * Extended Table extension with border style support.
- * Adds a `borderStyle` attribute to the table node: 'solid' (default) or 'none'.
+ * Adds a `borderStyle` attribute: 'solid' (default) or 'none'.
+ * Uses a ProseMirror plugin to sync the attribute to the DOM because
+ * TipTap's table NodeView bypasses renderHTML for DOM rendering.
  */
 export const TableWithStyles = Table.extend({
   addAttributes() {
@@ -18,6 +23,42 @@ export const TableWithStyles = Table.extend({
         },
       },
     }
+  },
+
+  addProseMirrorPlugins() {
+    const parentPlugins = this.parent?.() || []
+    return [
+      ...parentPlugins,
+      new Plugin({
+        key: tableBorderPluginKey,
+        view() {
+          return {
+            update(view) {
+              // Sync borderStyle attribute from doc nodes to DOM table elements
+              const { doc } = view.state
+              doc.descendants((node, pos) => {
+                if (node.type.name === 'table') {
+                  const dom = view.nodeDOM(pos)
+                  if (dom) {
+                    // nodeDOM returns the wrapper div for table; find the actual table
+                    const tableEl = dom instanceof HTMLTableElement
+                      ? dom
+                      : (dom as HTMLElement).querySelector?.('table') || dom
+                    if (tableEl instanceof HTMLElement) {
+                      const current = tableEl.getAttribute('data-border-style')
+                      const desired = node.attrs.borderStyle || 'solid'
+                      if (current !== desired) {
+                        tableEl.setAttribute('data-border-style', desired)
+                      }
+                    }
+                  }
+                }
+              })
+            },
+          }
+        },
+      }),
+    ]
   },
 })
 
