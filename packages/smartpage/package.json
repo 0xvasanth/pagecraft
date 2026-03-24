@@ -1,6 +1,6 @@
 {
   "name": "smartpage",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A Google Docs-style WYSIWYG PDF editor built on TipTap. Supports rich text, tables, images (resize/crop), template variables, block plugins (for-loops, conditionals), page breaks, and HTML export for PDF generation.",
   "type": "module",
   "main": "./dist/smartpage.js",
