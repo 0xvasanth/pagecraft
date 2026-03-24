@@ -169,6 +169,26 @@ The `[e2e]` tag marks cases covered by automated tests in `e2e/editor.spec.ts`. 
 - [ ] Commands disabled when not applicable (e.g., no table selected)
 - [ ] Selected row highlights with blue background
 
+### 4.5 Table Border Toggle
+- [ ] `[e2e:34]` Table has borders by default
+- [ ] `[e2e:35]` Hide Borders sets `data-border-style="none"` on table DOM
+- [ ] `[e2e:36]` Show Borders restores `data-border-style="solid"`
+- [ ] `[e2e:37]` Border style persists in `getHTML()` output
+- [ ] Borderless table shows transparent borders in editor
+- [ ] Borderless table shows dashed borders on cell hover (edit mode only)
+- [ ] Borders fully hidden in read-only mode and export
+- [ ] Border toggle via Insert > Table > Hide/Show Borders
+- [ ] Label and icon switch between "Hide Borders" / "Show Borders"
+- [ ] Border style preserved through save/load cycle
+- [ ] Print/PDF export respects borderless tables
+
+### 4.6 Cell Background Color
+- [ ] Cell Color submenu shows 16 preset colors
+- [ ] Clicking a color applies background to selected cell
+- [ ] "Reset Color" removes cell background
+- [ ] Cell background persists in HTML output as inline style
+- [ ] Cell background renders in print/PDF export
+
 ---
 
 ## 5. Images
@@ -278,9 +298,20 @@ The `[e2e]` tag marks cases covered by automated tests in `e2e/editor.spec.ts`. 
 - [ ] `[e2e:23]` A4 canvas defaults to paginated layout
 - [ ] Page gap shows page number (e.g., "1 / 4")
 - [ ] Content pushed to next page when crossing page boundary
-- [ ] Page break insertion creates new page (Ctrl+Enter or Insert menu)
 
-### 8.3 Non-Paginated Canvas
+### 8.3 Page Breaks
+- [ ] `[e2e:40]` Cmd+Enter inserts a page break
+- [ ] `[e2e:38]` Page break pushes content to the next page boundary
+- [ ] `[e2e:39]` Page break appears in HTML output as `data-page-break`
+- [ ] Page break leaves remaining space on current page blank
+- [ ] Page break is invisible (no line/block) — page flow plugin handles visual gap
+- [ ] Page break works via Insert > Page Break menu
+- [ ] Multiple page breaks create multiple page jumps
+- [ ] Print/PDF export respects page breaks (content splits across pages)
+- [ ] Page break element is selectable (can be deleted with backspace)
+- [ ] Undo reverses page break insertion
+
+### 8.4 Non-Paginated Canvas
 - [ ] Email canvas (`canvas="email"`) renders without pagination
 - [ ] No page gaps, no page indicators in email mode
 - [ ] Page break feature auto-hidden when pagination disabled

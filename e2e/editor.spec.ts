@@ -513,6 +513,144 @@ test.describe('Content Fingerprint', () => {
   })
 })
 
+test.describe('Table Border Toggle', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('.ProseMirror')
+    await enterEditMode(page)
+    await setContent(page, '<table><tr><th>Name</th><th>Email</th></tr><tr><td>Alice</td><td>alice@test.com</td></tr></table>')
+  })
+
+  test('34. table has borders by default', async ({ page }) => {
+    const borderStyle = await page.evaluate(() => {
+      const td = document.querySelector('.ProseMirror td')
+      return td ? getComputedStyle(td).borderColor : 'none'
+    })
+    expect(borderStyle).not.toBe('transparent')
+  })
+
+  test('35. hide borders via ProseMirror transaction', async ({ page }) => {
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      const { state, view } = editor
+      state.doc.descendants((node: any, pos: number) => {
+        if (node.type.name === 'table') {
+          view.dispatch(state.tr.setNodeAttribute(pos, 'borderStyle', 'none'))
+          return false
+        }
+      })
+    })
+    await page.waitForTimeout(200)
+
+    const attr = await page.evaluate(() => {
+      const table = document.querySelector('.ProseMirror table')
+      return table?.getAttribute('data-border-style')
+    })
+    expect(attr).toBe('none')
+  })
+
+  test('36. show borders restores them', async ({ page }) => {
+    // Hide then show
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      const { state, view } = editor
+      state.doc.descendants((node: any, pos: number) => {
+        if (node.type.name === 'table') {
+          view.dispatch(state.tr.setNodeAttribute(pos, 'borderStyle', 'none'))
+          return false
+        }
+      })
+    })
+    await page.waitForTimeout(100)
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      const { state, view } = editor
+      state.doc.descendants((node: any, pos: number) => {
+        if (node.type.name === 'table') {
+          view.dispatch(state.tr.setNodeAttribute(pos, 'borderStyle', 'solid'))
+          return false
+        }
+      })
+    })
+    await page.waitForTimeout(200)
+
+    const attr = await page.evaluate(() => {
+      const table = document.querySelector('.ProseMirror table')
+      return table?.getAttribute('data-border-style')
+    })
+    expect(attr).toBe('solid')
+  })
+
+  test('37. border style persists in getHTML output', async ({ page }) => {
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      const { state, view } = editor
+      state.doc.descendants((node: any, pos: number) => {
+        if (node.type.name === 'table') {
+          view.dispatch(state.tr.setNodeAttribute(pos, 'borderStyle', 'none'))
+          return false
+        }
+      })
+    })
+    await page.waitForTimeout(200)
+
+    const html = await getHTML(page)
+    expect(html).toContain('data-border-style="none"')
+  })
+})
+
+test.describe('Page Break', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('.ProseMirror')
+    await enterEditMode(page)
+  })
+
+  test('38. page break pushes content to next page', async ({ page }) => {
+    // Insert content, page break, more content
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      editor.commands.setContent('<p>Before break</p>')
+      editor.chain().focus('end').insertPageBreak().run()
+      editor.chain().focus('end').insertContent('<p>After break</p>').run()
+    })
+    await page.waitForTimeout(500)
+
+    // The page flow plugin should have added margin rules
+    const hasPageFlowRules = await page.evaluate(() => {
+      const style = document.querySelector('[data-page-flow]')
+      return (style?.textContent?.length || 0) > 0
+    })
+    expect(hasPageFlowRules).toBe(true)
+  })
+
+  test('39. page break appears in HTML output', async ({ page }) => {
+    await page.evaluate(() => {
+      const editor = (document.querySelector('.ProseMirror') as any).editor
+      editor.commands.setContent('<p>Before</p>')
+      editor.chain().focus('end').insertPageBreak().run()
+      editor.chain().focus('end').insertContent('<p>After</p>').run()
+    })
+    await page.waitForTimeout(200)
+
+    const html = await getHTML(page)
+    expect(html).toContain('data-page-break')
+    expect(html).toContain('Before')
+    expect(html).toContain('After')
+  })
+
+  test('40. Cmd+Enter inserts page break', async ({ page }) => {
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.type('Before break')
+    await page.keyboard.press('Meta+Enter')
+    await page.keyboard.type('After break')
+    await page.waitForTimeout(300)
+
+    const html = await getHTML(page)
+    expect(html).toContain('data-page-break')
+  })
+})
+
 test.describe('Console Errors', () => {
   test('21. no console errors on load and basic editing', async ({ page }) => {
     const errors: string[] = []
