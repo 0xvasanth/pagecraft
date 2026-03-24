@@ -79,6 +79,16 @@ const CONTENT_STYLES = `
     th {
       background: #f9fafb;
       font-weight: 600;
+    }
+
+    /* Borderless tables */
+    table[data-border-style="none"] td,
+    table[data-border-style="none"] th {
+      border-color: transparent;
+    }
+
+    table[data-border-style="none"] th {
+      background: transparent;
       text-align: left;
     }
 
