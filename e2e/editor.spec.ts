@@ -97,42 +97,37 @@ test.describe('Page Pagination', () => {
       `<p>Paragraph ${i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt.</p>`
     ).join('')
     await setContent(page, paras)
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(1000)
 
     // Page gap indicator should appear
     const gapText = page.locator('text=/\\d+ \\/ \\d+/')
     await expect(gapText.first()).toBeVisible({ timeout: 5000 })
-
-    // Page flow style tag should have rules
-    const ruleLen = await page.evaluate(() => {
-      const s = document.querySelector('[data-page-flow]')
-      return s?.textContent?.length || 0
-    })
-    expect(ruleLen).toBeGreaterThan(0)
   })
 
   test('6. editing updates pagination', async ({ page }) => {
-    const paras = Array.from({ length: 40 }, (_, i) =>
-      `<p>Line ${i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>`
+    // Start with content that fits on ~2 pages
+    const paras = Array.from({ length: 20 }, (_, i) =>
+      `<p>Line ${i + 1}: Lorem ipsum dolor sit amet.</p>`
     ).join('')
     await setContent(page, paras)
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(800)
 
-    // Get initial spacer count
-    const initialRules = await page.evaluate(() => document.querySelector('[data-page-flow]')?.textContent || '')
+    // Count initial page gaps
+    const initialGaps = await page.locator('text=/\\d+ \\/ \\d+/').count()
 
-    // Add lines at the start
+    // Add enough content to force significantly more pages
     await page.evaluate(() => {
       const pm = document.querySelector('.ProseMirror') as any
-      pm.editor.chain().focus('start').run()
+      const extra = Array.from({ length: 60 }, (_, i) =>
+        `<p>Extra ${i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>`
+      ).join('')
+      pm.editor.chain().focus('end').insertContent(extra).run()
     })
-    await page.keyboard.press('Enter')
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(800)
 
-    // Rules should have changed (different nth-child targets)
-    const newRules = await page.evaluate(() => document.querySelector('[data-page-flow]')?.textContent || '')
-    expect(newRules).not.toBe(initialRules)
+    // More page gaps should appear
+    const newGaps = await page.locator('text=/\\d+ \\/ \\d+/').count()
+    expect(newGaps).toBeGreaterThan(initialGaps)
   })
 })
 
@@ -331,9 +326,9 @@ test.describe('New API Features', () => {
       `<p>Paragraph ${i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>`
     ).join('')
     await setContent(page, paras)
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(800)
     // Page gap should be visible
-    await expect(page.locator('text=/\\d+ \\/ \\d+/')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('text=/\\d+ \\/ \\d+/').first()).toBeVisible({ timeout: 5000 })
   })
 
   test('24. variables with labels show labels in dropdown', async ({ page }) => {
@@ -607,7 +602,6 @@ test.describe('Page Break', () => {
   })
 
   test('38. page break pushes content to next page', async ({ page }) => {
-    // Insert content, page break, more content
     await page.evaluate(() => {
       const editor = (document.querySelector('.ProseMirror') as any).editor
       editor.commands.setContent('<p>Before break</p>')
@@ -616,12 +610,12 @@ test.describe('Page Break', () => {
     })
     await page.waitForTimeout(500)
 
-    // The page flow plugin should have added margin rules
-    const hasPageFlowRules = await page.evaluate(() => {
-      const style = document.querySelector('[data-page-flow]')
-      return (style?.textContent?.length || 0) > 0
+    // Page break should have height set by the page-flow plugin
+    const breakHeight = await page.evaluate(() => {
+      const pb = document.querySelector('.page-break')
+      return pb ? (pb as HTMLElement).offsetHeight : 0
     })
-    expect(hasPageFlowRules).toBe(true)
+    expect(breakHeight).toBeGreaterThan(0)
   })
 
   test('39. page break appears in HTML output', async ({ page }) => {

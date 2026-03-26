@@ -31,7 +31,7 @@ import {
   PopoverTrigger,
 } from '../ui/popover'
 import { Input } from '../ui/input'
-import { useCallback, useEffect, useRef, useState, useReducer } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fileToBase64 } from '../utils/image-utils'
 
 import type { EditorBlockPlugin } from '../blocks/types'
@@ -124,20 +124,82 @@ function getCurrentFontSize(editor: Editor): number {
   return 11 // default editor font size
 }
 
+interface ToolbarState {
+  isBold: boolean
+  isItalic: boolean
+  isUnderline: boolean
+  isStrike: boolean
+  isSubscript: boolean
+  isSuperscript: boolean
+  isLink: boolean
+  isBulletList: boolean
+  isOrderedList: boolean
+  isTaskList: boolean
+  isBlockquote: boolean
+  isCodeBlock: boolean
+  headingLevel: number
+  textAlign: string
+  canUndo: boolean
+  canRedo: boolean
+  fontSize: number
+  isHeading: boolean
+  isInTable: boolean
+}
+
+function getToolbarState(editor: Editor | null): ToolbarState {
+  if (!editor) return {
+    isBold: false, isItalic: false, isUnderline: false, isStrike: false,
+    isSubscript: false, isSuperscript: false, isLink: false,
+    isBulletList: false, isOrderedList: false, isTaskList: false,
+    isBlockquote: false, isCodeBlock: false, headingLevel: 0,
+    textAlign: 'left', canUndo: false, canRedo: false, fontSize: 11,
+    isHeading: false, isInTable: false,
+  }
+  return {
+    isBold: editor.isActive('bold'),
+    isItalic: editor.isActive('italic'),
+    isUnderline: editor.isActive('underline'),
+    isStrike: editor.isActive('strike'),
+    isSubscript: editor.isActive('subscript'),
+    isSuperscript: editor.isActive('superscript'),
+    isLink: editor.isActive('link'),
+    isBulletList: editor.isActive('bulletList'),
+    isOrderedList: editor.isActive('orderedList'),
+    isTaskList: editor.isActive('taskList'),
+    isBlockquote: editor.isActive('blockquote'),
+    isCodeBlock: editor.isActive('codeBlock'),
+    headingLevel: [1,2,3,4].find(l => editor.isActive('heading', { level: l })) || 0,
+    textAlign: ['center', 'right', 'justify'].find(a => editor.isActive({ textAlign: a })) || 'left',
+    canUndo: editor.can().undo(),
+    canRedo: editor.can().redo(),
+    fontSize: getCurrentFontSize(editor),
+    isHeading: editor.isActive('heading'),
+    isInTable: canRun(editor, 'deleteTable'),
+  }
+}
+
 export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = [], actions, readOnly = false, features }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [customVarName, setCustomVarName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
 
-  // Force re-render on editor selection/transaction changes so active states stay in sync
-  const [, forceUpdate] = useReducer(c => c + 1, 0)
+  const [toolbarState, setToolbarState] = useState(() => getToolbarState(editor))
   useEffect(() => {
     if (!editor) return
-    editor.on('selectionUpdate', forceUpdate)
-    editor.on('transaction', forceUpdate)
+    const onUpdate = () => {
+      const next = getToolbarState(editor)
+      setToolbarState(prev => {
+        for (const key in next) {
+          if ((prev as any)[key] !== (next as any)[key]) return next
+        }
+        return prev
+      })
+    }
+    editor.on('selectionUpdate', onUpdate)
+    editor.on('transaction', onUpdate)
     return () => {
-      editor.off('selectionUpdate', forceUpdate)
-      editor.off('transaction', forceUpdate)
+      editor.off('selectionUpdate', onUpdate)
+      editor.off('transaction', onUpdate)
     }
   }, [editor])
 
@@ -198,10 +260,10 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
 
         {/* History */}
         {showHistory && <>
-          {has('undo') && <ToolbarButton onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} tooltip="Undo (Ctrl+Z)">
+          {has('undo') && <ToolbarButton onClick={() => editor.chain().focus().undo().run()} disabled={!toolbarState.canUndo} tooltip="Undo (Ctrl+Z)">
             <Undo2 className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('redo') && <ToolbarButton onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} tooltip="Redo (Ctrl+Y)">
+          {has('redo') && <ToolbarButton onClick={() => editor.chain().focus().redo().run()} disabled={!toolbarState.canRedo} tooltip="Redo (Ctrl+Y)">
             <Redo2 className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
         </>}
@@ -214,10 +276,10 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
           >
             <Type className="size-3.5" strokeWidth={1.5} />
             <span className="text-xs">
-              {editor.isActive('heading', { level: 1 }) ? 'Heading 1' :
-               editor.isActive('heading', { level: 2 }) ? 'Heading 2' :
-               editor.isActive('heading', { level: 3 }) ? 'Heading 3' :
-               editor.isActive('heading', { level: 4 }) ? 'Heading 4' :
+              {toolbarState.headingLevel === 1 ? 'Heading 1' :
+               toolbarState.headingLevel === 2 ? 'Heading 2' :
+               toolbarState.headingLevel === 3 ? 'Heading 3' :
+               toolbarState.headingLevel === 4 ? 'Heading 4' :
                'Paragraph'}
             </span>
             <ChevronDown className="size-3" strokeWidth={1.5} />
@@ -242,7 +304,7 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
         </DropdownMenu>}
 
         {/* Font Size — paragraph only */}
-        {!editor.isActive('heading') && (
+        {!toolbarState.isHeading && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: '4px', marginRight: '4px' }}>
             <button
               onClick={() => {
@@ -256,7 +318,7 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
               type="number"
               min={6}
               max={72}
-              value={getCurrentFontSize(editor)}
+              value={toolbarState.fontSize}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10)
                 if (val >= 6 && val <= 72) {
@@ -280,22 +342,22 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
         {/* Text Style */}
         {sepBefore(2) && <Separator orientation="vertical" className="mx-1 h-6" />}
         {showTextStyle && <>
-          {has('bold') && <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} tooltip="Bold (Ctrl+B)">
+          {has('bold') && <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={toolbarState.isBold} tooltip="Bold (Ctrl+B)">
             <Bold className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('italic') && <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive('italic')} tooltip="Italic (Ctrl+I)">
+          {has('italic') && <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} isActive={toolbarState.isItalic} tooltip="Italic (Ctrl+I)">
             <Italic className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('underline') && <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive('underline')} tooltip="Underline (Ctrl+U)">
+          {has('underline') && <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={toolbarState.isUnderline} tooltip="Underline (Ctrl+U)">
             <UnderlineIcon className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('strikethrough') && <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive('strike')} tooltip="Strikethrough">
+          {has('strikethrough') && <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} isActive={toolbarState.isStrike} tooltip="Strikethrough">
             <Strikethrough className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('subscript') && <ToolbarButton onClick={() => editor.chain().focus().toggleSubscript().run()} isActive={editor.isActive('subscript')} tooltip="Subscript">
+          {has('subscript') && <ToolbarButton onClick={() => editor.chain().focus().toggleSubscript().run()} isActive={toolbarState.isSubscript} tooltip="Subscript">
             <Subscript className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('superscript') && <ToolbarButton onClick={() => editor.chain().focus().toggleSuperscript().run()} isActive={editor.isActive('superscript')} tooltip="Superscript">
+          {has('superscript') && <ToolbarButton onClick={() => editor.chain().focus().toggleSuperscript().run()} isActive={toolbarState.isSuperscript} tooltip="Superscript">
             <Superscript className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
         </>}
@@ -355,16 +417,16 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
         {/* Alignment */}
         {sepBefore(4) && <Separator orientation="vertical" className="mx-1 h-6" />}
         {showAlignment && <>
-          {has('alignLeft') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} tooltip="Align left">
+          {has('alignLeft') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={toolbarState.textAlign === 'left'} tooltip="Align left">
             <AlignLeft className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('alignCenter') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={editor.isActive({ textAlign: 'center' })} tooltip="Align center">
+          {has('alignCenter') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={toolbarState.textAlign === 'center'} tooltip="Align center">
             <AlignCenter className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('alignRight') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={editor.isActive({ textAlign: 'right' })} tooltip="Align right">
+          {has('alignRight') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={toolbarState.textAlign === 'right'} tooltip="Align right">
             <AlignRight className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('alignJustify') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('justify').run()} isActive={editor.isActive({ textAlign: 'justify' })} tooltip="Justify">
+          {has('alignJustify') && <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('justify').run()} isActive={toolbarState.textAlign === 'justify'} tooltip="Justify">
             <AlignJustify className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
         </>}
@@ -372,13 +434,13 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
         {/* Lists */}
         {sepBefore(5) && <Separator orientation="vertical" className="mx-1 h-6" />}
         {showLists && <>
-          {has('bulletList') && <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} tooltip="Bullet list">
+          {has('bulletList') && <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={toolbarState.isBulletList} tooltip="Bullet list">
             <List className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('orderedList') && <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} tooltip="Numbered list">
+          {has('orderedList') && <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={toolbarState.isOrderedList} tooltip="Numbered list">
             <ListOrdered className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
-          {has('taskList') && <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={editor.isActive('taskList')} tooltip="Task list">
+          {has('taskList') && <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={toolbarState.isTaskList} tooltip="Task list">
             <ListChecks className="size-3.5" strokeWidth={1.5} />
           </ToolbarButton>}
           {has('indent') && <ToolbarButton onClick={() => editor.chain().focus().sinkListItem('listItem').run()} disabled={!canRun(editor, 'sinkListItem')} tooltip="Increase indent">
@@ -392,7 +454,7 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
         {/* Link */}
         {sepBefore(6) && <Separator orientation="vertical" className="mx-1 h-6" />}
         {showLink && <Popover>
-          <PopoverTrigger render={<Button variant="ghost" size="icon-xs" className={editor.isActive('link') ? 'bg-muted text-foreground' : ''} />}>
+          <PopoverTrigger render={<Button variant="ghost" size="icon-xs" className={toolbarState.isLink ? 'bg-muted text-foreground' : ''} />}>
             <LinkIcon className="size-3.5" strokeWidth={1.5} />
           </PopoverTrigger>
           <PopoverContent className="w-72 p-3" align="start">
@@ -405,10 +467,10 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
                 className="h-8 text-sm"
               />
               <Button size="xs" onClick={setLink}>
-                {editor.isActive('link') ? 'Update' : 'Add'}
+                {toolbarState.isLink ? 'Update' : 'Add'}
               </Button>
             </div>
-            {editor.isActive('link') && (
+            {toolbarState.isLink && (
               <button
                 className="mt-2 text-xs text-destructive hover:underline"
                 onClick={() => editor.chain().focus().unsetLink().run()}
