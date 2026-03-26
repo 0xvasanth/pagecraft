@@ -321,7 +321,6 @@ function textItemsToHtml(
  */
 function inferAlignment(x: number, pageWidth: number): string {
   if (pageWidth <= 0) return 'left'
-  const leftMargin = pageWidth * 0.15   // ~15% margin
   const centerZone = pageWidth * 0.35   // center starts at 35%
   const rightZone = pageWidth * 0.65    // right-aligned if starts past 65%
 

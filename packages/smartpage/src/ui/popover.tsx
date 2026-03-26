@@ -51,6 +51,7 @@ function PopoverContent({
 
 function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
+    // @ts-ignore React types version mismatch
     <div
       data-slot="popover-header"
       className={cn("flex flex-col gap-0.5 text-sm", className)}

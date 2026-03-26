@@ -242,6 +242,7 @@ function DropdownMenuShortcut({
   ...props
 }: React.ComponentProps<"span">) {
   return (
+    // @ts-ignore React types version mismatch
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(

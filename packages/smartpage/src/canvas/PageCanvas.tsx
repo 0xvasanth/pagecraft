@@ -1,5 +1,5 @@
 import { EditorContent, type Editor } from '@tiptap/react'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TableControls } from '../table/TableControls'
 import type { ResolvedCanvas } from './canvas-config'
 import type { ThemeConfig } from '../types'

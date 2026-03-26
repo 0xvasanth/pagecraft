@@ -10,7 +10,6 @@ import {
 } from '../ui/dropdown-menu'
 import { Eye, Pencil, FileUp, Loader2, Printer, Download, Copy, Check, FileDown, FileText } from 'lucide-react'
 import { importDocx } from '../utils/import-docx'
-import { importPdf } from '../utils/import-pdf'
 import type { SmartPageRef } from '../core/SmartPage'
 
 export interface EditorActionsConfig {

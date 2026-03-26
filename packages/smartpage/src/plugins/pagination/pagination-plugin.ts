@@ -1,10 +1,9 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import type { PaginationOptions, PaginationState } from './types'
 import { injectPaginationStyles } from './pagination-styles'
 
-const paginationPluginKey = new PluginKey<DecorationSet>('pagination')
+const paginationPluginKey = new PluginKey('pagination')
 const paginationStateKey = new PluginKey<PaginationState>('paginationState')
 
 export { paginationPluginKey, paginationStateKey }
