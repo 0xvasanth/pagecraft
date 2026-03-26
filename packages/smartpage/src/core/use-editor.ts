@@ -19,7 +19,7 @@ import { ResizableImage } from '../extensions/resizable-image'
 import { PasteHandler } from '../extensions/paste-handler'
 import { TemplateVariable } from '../extensions/template-variable'
 import { FontSize } from '../extensions/font-size'
-import { PageFlowExtension } from './page-flow-plugin'
+import { PaginationExtension } from '../plugins/pagination'
 import type { EditorBlockPlugin, BlockContext } from '../blocks/types'
 import type { ResolvedCanvas } from '../canvas/canvas-config'
 import type { TemplateVariable as TemplateVariableType, ExtensionsConfig } from '../types'
@@ -65,11 +65,15 @@ function buildExtensions(
   defaults.set('pageBreak', PageBreak)
   defaults.set('resizableImage', ResizableImage)
   defaults.set('pasteHandler', PasteHandler)
-  defaults.set('pageFlow', PageFlowExtension.configure({
-    contentHeight: canvas?.contentHeightPx || 930.5,
-    paddingTop: canvas?.paddingPx.top || 96,
-    paddingBottom: canvas?.paddingPx.bottom || 96,
+  defaults.set('pagination', PaginationExtension.configure({
+    pageHeight: canvas?.heightPx || 1122.5,
+    pageWidth: canvas?.width || '210mm',
     pageGap: canvas?.pageGap || 40,
+    marginTop: canvas?.paddingPx.top || 96,
+    marginBottom: canvas?.paddingPx.bottom || 96,
+    marginLeft: canvas?.paddingPx.left || 96,
+    marginRight: canvas?.paddingPx.right || 96,
+    pageGapBackground: '#f0f0f0',
     enabled: canvas?.paginate ?? true,
   }))
 
@@ -98,7 +102,7 @@ function buildExtensions(
   // 4. Skip pagination when not paginated
   if (canvas && !canvas.paginate) {
     defaults.delete('pageBreak')
-    // pageFlow handles itself via enabled:false, but remove it cleanly
+    defaults.delete('pagination')
   }
 
   // 5. Collect all + add custom + add block extensions

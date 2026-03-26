@@ -39,10 +39,8 @@
   font-size: 11pt;
   line-height: 1.5;
   color: #1a1a1a;
-  /* Prevent margin collapse — ensures the first child's margin-top
-     doesn't escape the ProseMirror container, which would shift
-     the entire editor down and misalign page boundaries. */
-  overflow: hidden;
+  display: flow-root;
+  position: relative;
 }
 
 .ProseMirror > * + * {
@@ -383,26 +381,6 @@
   height: auto;
   display: block;
   margin: 0.5em 0;
-}
-
-/* Page break — invisible in the editor; the page flow plugin handles
-   the visual gap by pushing content to the next page boundary.
-   The element itself is collapsed to zero height. */
-.page-break {
-  page-break-after: always;
-  break-after: page;
-  position: relative;
-  height: 0;
-  margin: 0;
-  border: none;
-  background: none;
-  user-select: none;
-  cursor: default;
-  overflow: hidden;
-}
-
-.ProseMirror .page-break.ProseMirror-selectednode {
-  outline: none;
 }
 
 /* Template variables */

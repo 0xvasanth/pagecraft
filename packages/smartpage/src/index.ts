@@ -20,3 +20,7 @@ export type { ResolvedCanvas } from './canvas/canvas-config'
 
 // Toolbar presets
 export { TOOLBAR_PRESETS, resolveToolbar } from './toolbar/toolbar-config'
+
+// Plugins
+export { PaginationExtension, paginationPluginKey, paginationStateKey } from './plugins'
+export type { PaginationOptions, PaginationState } from './plugins'
