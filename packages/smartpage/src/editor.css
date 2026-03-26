@@ -32,6 +32,14 @@
   color: #5f6368;
 }
 
+/* Toolbar responsive: single-row horizontal scroll, no wrapping */
+.smartpage .scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.smartpage .scrollbar-none > * {
+  flex-shrink: 0;
+}
+
 /* ProseMirror Core Styles */
 .ProseMirror {
   outline: none;

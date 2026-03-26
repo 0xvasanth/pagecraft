@@ -256,7 +256,7 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
     <TooltipProvider delay={300}>
       <div className="flex items-center border-b border-border bg-background px-1.5 py-0.5 sticky top-0 z-50" style={{ position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid #e5e7eb' }}>
         {/* Formatting controls — hidden in readOnly mode */}
-        {!readOnly && <div className="flex flex-wrap items-center gap-0.5">
+        {!readOnly && <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
 
         {/* History */}
         {showHistory && <>
@@ -272,7 +272,7 @@ export function EditorToolbar({ editor, variables = [], onAddVariable, blocks = 
         {sepBefore(1) && <Separator orientation="vertical" className="mx-1 h-6" />}
         {showHeading && <DropdownMenu>
           <DropdownMenuTrigger
-            render={<Button variant="ghost" size="xs" className="gap-1 min-w-[100px] justify-between" />}
+            render={<Button variant="ghost" size="xs" className="gap-1 justify-between whitespace-nowrap" />}
           >
             <Type className="size-3.5" strokeWidth={1.5} />
             <span className="text-xs">
